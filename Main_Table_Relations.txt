@@ -1,0 +1,474 @@
+-- ============================================================
+-- MAIN TABLE OF THE PROJECT : BOOKINGS
+-- DATABASE : chefconnect_db
+-- ============================================================
+--
+-- WHY BOOKINGS IS THE MAIN (PRIMARY) TABLE
+-- ----------------------------------------
+-- ChefConnect exists to turn "a customer's event" into "a chef cooking a
+-- menu at that event". BOOKINGS is the only table that holds all three:
+--
+--     EVENTS  (what the customer wants, and who the customer is)
+--     CHEFS   (who will cook)
+--     MENUS   (what will be cooked, and at what price)
+--
+-- and everything that happens afterwards hangs off it:
+--
+--     PAYMENTS  (money paid for the booking)
+--     REVIEWS   (rating given after the booking)
+--
+-- So ONE booking_id is enough to reach every other table in the project.
+--
+--
+-- THE TWO HIRING OPTIONS (chosen when the customer books)
+-- -------------------------------------------------------
+--  1. SERVICE TYPE  (events.service_type, with events.event_date + events.service_time)
+--       'Event'          chef cooks for an occasion (party, wedding, corporate lunch)
+--       'Personal Chef'  chef comes to the customer's HOME at a specific date and time
+--                        and cooks a fresh, healthy meal - no delivery app, no restaurant
+--  2. INGREDIENT SOURCE  (bookings.ingredient_source and bookings.ingredient_cost)
+--       'Customer'  chef cooks with the ingredients already present at the house (cost = 0)
+--       'Chef'      chef fetches the ingredients; the customer pays the bill as a separate
+--                   payments row with payment_type = 'Ingredients' and the chef is
+--                   reimbursed in full (it is never counted as platform revenue)
+--
+--
+-- RELATION MAP  (arrows point from the child table to the table it references)
+-- ---------------------------------------------------------------------------
+--
+--   USERS ◄── CUSTOMERS ◄── EVENTS ◄──┐
+--                │                    │
+--   LOCATIONS ◄──┤              ┌─────┴─────┐
+--                │              │ BOOKINGS  │ ◄── PAYMENTS  (1 booking : many payments)
+--   LOCATIONS ◄── CHEFS ◄───────┤  (MAIN)   │ ◄── REVIEWS   (1 booking : 0..1 review)
+--                │              └─────┬─────┘
+--   USERS ◄──────┘                    │
+--                                     └──► MENUS (menu must belong to the same chef)
+--   CHEFS ◄── CHEF_AVAILABILITY
+--   CHEFS ◄── CHEF_SPECIALITIES ──► CUISINES
+--
+--
+-- HOW EACH TABLE IS LINKED TO BOOKINGS
+-- ------------------------------------
+--  Table              Link to BOOKINGS                    Information fetched
+--  -----------------  ----------------------------------  ---------------------------------
+--  EVENTS             bookings.event_id = events.event_id event type, date, guests, requirements
+--  CUSTOMERS          via EVENTS (events.customer_id)     who booked: name, phone
+--  LOCATIONS          via CUSTOMERS / CHEFS (location_id) customer city, chef city
+--  CHEFS              bookings.chef_id = chefs.chef_id    chef name, experience, verification
+--  MENUS              bookings.menu_id = menus.menu_id    menu name, diet type, price per person
+--  PAYMENTS           payments.booking_id                 amount, method, status, date
+--  REVIEWS            reviews.booking_id                  rating
+--  CHEF_AVAILABILITY  via CHEFS (chef_id)                 dates the booked chef is free
+--  CHEF_SPECIALITIES  via CHEFS (chef_id) -> CUISINES     cuisines the booked chef cooks
+--  USERS              via CUSTOMERS / CHEFS (user_id)     login email and role
+--
+-- Integrity rule: FOREIGN KEY (menu_id, chef_id) REFERENCES menus(menu_id, chef_id)
+-- guarantees that the menu in a booking is always offered by the booked chef.
+--
+-- Derived values (calculated, never stored):
+--   booking_total = menus.price_per_person * events.guest_count      (the service charge)
+--   grand_total   = booking_total + bookings.ingredient_cost
+--   balance_due   = booking_total - SUM(successful 'Service' payments)
+--   chef_payout   = booking_total * 0.85  (+ ingredient_cost, reimbursed in full)
+--   platform_commission = booking_total * 0.15
+--
+-- Change the values below to look up any other booking / customer / chef.
+
+USE chefconnect_db;
+
+SET @bid  = 3;   -- booking to inspect
+SET @cid  = 1;   -- customer to inspect
+SET @chid = 3;   -- chef to inspect
+SET @pbid = 12;  -- personal-chef booking to inspect (chef bought the ingredients)
+SET @cid2 = 2;   -- customer who wants to hire a personal chef
+
+
+-- M1. Everything about ONE booking in a single row (events + customer + location + chef + menu).
+SELECT b.booking_id, b.booking_status,
+       e.event_type, e.event_date, e.guest_count,
+       c.first_name AS customer, c.phone, l.city AS customer_city,
+       ch.chef_name, m.menu_name, m.diet_flag, m.price_per_person,
+       m.price_per_person * e.guest_count AS booking_total,
+       e.service_type, e.service_time, b.ingredient_source, b.ingredient_cost
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN customers c ON e.customer_id = c.customer_id
+JOIN locations l ON c.location_id = l.location_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE b.booking_id = @bid;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+----------------+-----------------+------------+-------------+----------+------------+---------------+----------------+-------------------------+-----------+------------------+---------------+--------------+--------------+-------------------+-----------------+
+-- | booking_id | booking_status | event_type      | event_date | guest_count | customer | phone      | customer_city | chef_name      | menu_name               | diet_flag | price_per_person | booking_total | service_type | service_time | ingredient_source | ingredient_cost |
+-- +------------+----------------+-----------------+------------+-------------+----------+------------+---------------+----------------+-------------------------+-----------+------------------+---------------+--------------+--------------+-------------------+-----------------+
+-- |          3 | Completed      | Corporate Lunch | 2026-09-05 |          50 | Arjun    | 9876500003 | Visakhapatnam | Harpreet Singh | North Indian Veg Deluxe | Veg       |           500.00 |      25000.00 | Event        | 13:00:00     | Chef              |         6000.00 |
+-- +------------+----------------+-----------------+------------+-------------+----------+------------+---------------+----------------+-------------------------+-----------+------------------+---------------+--------------+--------------+-------------------+-----------------+
+-- 1 row in set
+
+
+-- M2. All payments made for that booking (BOOKINGS -> PAYMENTS).
+SELECT payment_method, payment_status, payment_type, amount, payment_date
+FROM payments
+WHERE booking_id = @bid
+ORDER BY payment_date;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +----------------+----------------+--------------+----------+---------------------+
+-- | payment_method | payment_status | payment_type | amount   | payment_date        |
+-- +----------------+----------------+--------------+----------+---------------------+
+-- | Net Banking    | Success        | Ingredients  |  6000.00 | 2026-08-24 09:00:00 |
+-- | Net Banking    | Success        | Service      | 12500.00 | 2026-08-25 09:30:00 |
+-- | Net Banking    | Success        | Service      | 12500.00 | 2026-09-04 09:30:00 |
+-- +----------------+----------------+--------------+----------+---------------------+
+-- 3 rows in set
+
+
+-- M3. The rating given for that booking (BOOKINGS -> REVIEWS).
+SELECT booking_id, rating
+FROM reviews
+WHERE booking_id = @bid;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+--------+
+-- | booking_id | rating |
+-- +------------+--------+
+-- |          3 |      4 |
+-- +------------+--------+
+-- 1 row in set
+
+
+-- M4. Money summary of that booking: total, paid, balance, chef payout and commission.
+SELECT b.booking_id,
+       m.price_per_person * e.guest_count AS booking_total,
+       IFNULL((SELECT SUM(p.amount) FROM payments p
+               WHERE p.booking_id = b.booking_id AND p.payment_status = 'Success' AND p.payment_type = 'Service'), 0) AS paid_amount,
+       m.price_per_person * e.guest_count
+         - IFNULL((SELECT SUM(p.amount) FROM payments p
+                   WHERE p.booking_id = b.booking_id AND p.payment_status = 'Success' AND p.payment_type = 'Service'), 0) AS balance_due,
+       ROUND(m.price_per_person * e.guest_count * 0.85, 2) AS chef_payout,
+       ROUND(m.price_per_person * e.guest_count * 0.15, 2) AS platform_commission
+FROM bookings b
+JOIN menus m ON b.menu_id = m.menu_id
+JOIN events e ON b.event_id = e.event_id
+WHERE b.booking_id = @bid;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+---------------+-------------+-------------+-------------+---------------------+
+-- | booking_id | booking_total | paid_amount | balance_due | chef_payout | platform_commission |
+-- +------------+---------------+-------------+-------------+-------------+---------------------+
+-- |          3 |      25000.00 |    25000.00 |        0.00 |    21250.00 |             3750.00 |
+-- +------------+---------------+-------------+-------------+-------------+---------------------+
+-- 1 row in set
+
+
+-- M5. Customer side: every booking made by one customer (CUSTOMERS -> EVENTS -> BOOKINGS).
+SELECT c.first_name, e.event_type, e.event_date, b.booking_id,
+       ch.chef_name, m.menu_name, b.booking_status
+FROM customers c
+JOIN events e ON c.customer_id = e.customer_id
+JOIN bookings b ON e.event_id = b.event_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE c.customer_id = @cid
+ORDER BY e.event_date;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+-------------------+------------+------------+---------------+-----------------------+----------------+
+-- | first_name | event_type        | event_date | booking_id | chef_name     | menu_name             | booking_status |
+-- +------------+-------------------+------------+------------+---------------+-----------------------+----------------+
+-- | Ravi       | Birthday Party    | 2026-08-15 |          1 | Lakshmi Reddy | Andhra Feast          | Completed      |
+-- | Ravi       | Healthy Breakfast | 2026-10-08 |         15 | Lakshmi Reddy | Homestyle Andhra Meal | Confirmed      |
+-- | Ravi       | Family Gathering  | 2026-10-10 |          6 | Lakshmi Reddy | Royal Veg Thali       | Confirmed      |
+-- +------------+-------------------+------------+------------+---------------+-----------------------+----------------+
+-- 3 rows in set
+
+
+-- M6. Chef side: every booking of one chef with the event and customer.
+SELECT ch.chef_name, b.booking_id, e.event_type, e.event_date,
+       c.first_name AS customer, m.menu_name, b.booking_status
+FROM chefs ch
+JOIN bookings b ON ch.chef_id = b.chef_id
+JOIN events e ON b.event_id = e.event_id
+JOIN customers c ON e.customer_id = c.customer_id
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE ch.chef_id = @chid
+ORDER BY e.event_date;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +----------------+------------+---------------------+------------+----------+-------------------------+----------------+
+-- | chef_name      | booking_id | event_type          | event_date | customer | menu_name               | booking_status |
+-- +----------------+------------+---------------------+------------+----------+-------------------------+----------------+
+-- | Harpreet Singh |          2 | Wedding Anniversary | 2026-08-22 | Sneha    | Punjabi Dhaba Combo     | Completed      |
+-- | Harpreet Singh |          3 | Corporate Lunch     | 2026-09-05 | Arjun    | North Indian Veg Deluxe | Completed      |
+-- | Harpreet Singh |         11 | Healthy Lunch       | 2026-09-18 | Sneha    | Healthy Roti-Sabzi Meal | Completed      |
+-- | Harpreet Singh |          7 | Dinner Party        | 2026-10-15 | Sneha    | Punjabi Dhaba Combo     | Confirmed      |
+-- | Harpreet Singh |          8 | Corporate Dinner    | 2026-10-18 | Meena    | North Indian Veg Deluxe | Pending        |
+-- +----------------+------------+---------------------+------------+----------+-------------------------+----------------+
+-- 5 rows in set
+
+
+-- M7. Cuisines cooked by the chef of that booking (BOOKINGS -> CHEFS -> CHEF_SPECIALITIES -> CUISINES).
+SELECT ch.chef_name, cu.cuisine_name, cs.skill_level
+FROM bookings b
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN chef_specialities cs ON ch.chef_id = cs.chef_id
+JOIN cuisines cu ON cs.cuisine_id = cu.cuisine_id
+WHERE b.booking_id = @bid;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +----------------+--------------+--------------+
+-- | chef_name      | cuisine_name | skill_level  |
+-- +----------------+--------------+--------------+
+-- | Harpreet Singh | North Indian | Expert       |
+-- | Harpreet Singh | Chinese      | Intermediate |
+-- +----------------+--------------+--------------+
+-- 2 rows in set
+
+
+-- M8. Dates on which the chef of that booking is free (BOOKINGS -> CHEFS -> CHEF_AVAILABILITY).
+SELECT ch.chef_name, a.availability_dt, a.start_time, a.end_time, a.status
+FROM bookings b
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN chef_availability a ON ch.chef_id = a.chef_id
+WHERE b.booking_id = @bid
+ORDER BY a.availability_dt;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +----------------+-----------------+------------+----------+-----------+
+-- | chef_name      | availability_dt | start_time | end_time | status    |
+-- +----------------+-----------------+------------+----------+-----------+
+-- | Harpreet Singh | 2026-10-15      | 11:00:00   | 23:00:00 | Available |
+-- | Harpreet Singh | 2026-10-16      | 11:00:00   | 23:00:00 | Booked    |
+-- +----------------+-----------------+------------+----------+-----------+
+-- 2 rows in set
+
+
+-- M9. Master report: one row per booking with customer, chef, menu, total, paid, balance and rating.
+SELECT b.booking_id, c.first_name AS customer, ch.chef_name, m.menu_name,
+       b.booking_status,
+       m.price_per_person * e.guest_count AS booking_total,
+       IFNULL((SELECT SUM(p.amount) FROM payments p
+               WHERE p.booking_id = b.booking_id AND p.payment_status = 'Success' AND p.payment_type = 'Service'), 0) AS paid_amount,
+       (SELECT ROUND(AVG(r.rating), 1) FROM reviews r
+        WHERE r.booking_id = b.booking_id) AS rating
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN customers c ON e.customer_id = c.customer_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN menus m ON b.menu_id = m.menu_id
+ORDER BY b.booking_id;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+----------+-----------------+-----------------------------+----------------+---------------+-------------+--------+
+-- | booking_id | customer | chef_name       | menu_name                   | booking_status | booking_total | paid_amount | rating |
+-- +------------+----------+-----------------+-----------------------------+----------------+---------------+-------------+--------+
+-- |          1 | Ravi     | Lakshmi Reddy   | Andhra Feast                | Completed      |      13000.00 |    13000.00 | 5.00   |
+-- |          2 | Sneha    | Harpreet Singh  | Punjabi Dhaba Combo         | Completed      |      16500.00 |    16500.00 | 4.00   |
+-- |          3 | Arjun    | Harpreet Singh  | North Indian Veg Deluxe     | Completed      |      25000.00 |    25000.00 | 4.00   |
+-- |          4 | Priya    | Ramesh Naidu    | South Indian Tiffin Special | Completed      |      14000.00 |    14000.00 | 5.00   |
+-- |          5 | Karthik  | Marco Fernandes | Italian Pasta Night         | Completed      |      12000.00 |    12000.00 | 3.00   |
+-- |          6 | Ravi     | Lakshmi Reddy   | Royal Veg Thali             | Confirmed      |      11250.00 |     5625.00 | NULL   |
+-- |          7 | Sneha    | Harpreet Singh  | Punjabi Dhaba Combo         | Confirmed      |       6600.00 |     6600.00 | NULL   |
+-- |          8 | Meena    | Harpreet Singh  | North Indian Veg Deluxe     | Pending        |      30000.00 |           0 | NULL   |
+-- |          9 | Suresh   | Lakshmi Reddy   | Andhra Feast                | Cancelled      |      52000.00 |    26000.00 | NULL   |
+-- |         10 | Karthik  | Marco Fernandes | Italian Pasta Night         | Confirmed      |      28000.00 |    14000.00 | NULL   |
+-- |         11 | Sneha    | Harpreet Singh  | Healthy Roti-Sabzi Meal     | Completed      |        700.00 |      700.00 | 5.00   |
+-- |         12 | Priya    | Ramesh Naidu    | South Indian Tiffin Special | Completed      |       1400.00 |     1400.00 | 4.00   |
+-- |         13 | Karthik  | Marco Fernandes | Light and Healthy Bowl      | Confirmed      |       1000.00 |      500.00 | NULL   |
+-- |         14 | Suresh   | Lakshmi Reddy   | Homestyle Andhra Meal       | Pending        |        900.00 |           0 | NULL   |
+-- |         15 | Ravi     | Lakshmi Reddy   | Homestyle Andhra Meal       | Confirmed      |        600.00 |           0 | NULL   |
+-- +------------+----------+-----------------+-----------------------------+----------------+---------------+-------------+--------+
+-- 15 rows in set
+
+
+-- M10. Integrity check: bookings whose menu is not offered by the booked chef (must return 0 rows).
+SELECT b.booking_id, b.chef_id AS booked_chef, m.chef_id AS menu_owner
+FROM bookings b
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE b.chef_id <> m.chef_id;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+-------------+------------+
+-- | booking_id | booked_chef | menu_owner |
+-- +------------+-------------+------------+
+-- +------------+-------------+------------+
+-- 0 rows in set
+
+
+-- ============================================================
+-- PERSONAL CHEF AND INGREDIENT OPTIONS
+-- ============================================================
+
+-- M11. Compare the two service types: bookings, guests and service value (cancelled excluded).
+SELECT e.service_type,
+       COUNT(*) AS total_bookings,
+       SUM(e.guest_count) AS total_guests,
+       SUM(m.price_per_person * e.guest_count) AS service_value
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE b.booking_status <> 'Cancelled'
+GROUP BY e.service_type;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +---------------+----------------+--------------+---------------+
+-- | service_type  | total_bookings | total_guests | service_value |
+-- +---------------+----------------+--------------+---------------+
+-- | Event         |              9 |          287 |     156350.00 |
+-- | Personal Chef |              5 |           13 |       4600.00 |
+-- +---------------+----------------+--------------+---------------+
+-- 2 rows in set
+
+
+-- M12. All Personal Chef bookings: the chef who comes to the customer's home, when, and with whose ingredients.
+SELECT b.booking_id, c.first_name AS customer, l.city AS home_city,
+       e.event_date, e.service_time, e.event_type, e.guest_count,
+       ch.chef_name, m.menu_name, b.ingredient_source, b.booking_status
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN customers c ON e.customer_id = c.customer_id
+JOIN locations l ON c.location_id = l.location_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE e.service_type = 'Personal Chef'
+ORDER BY e.event_date, e.service_time;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+----------+------------+------------+--------------+-------------------+-------------+-----------------+-----------------------------+-------------------+----------------+
+-- | booking_id | customer | home_city  | event_date | service_time | event_type        | guest_count | chef_name       | menu_name                   | ingredient_source | booking_status |
+-- +------------+----------+------------+------------+--------------+-------------------+-------------+-----------------+-----------------------------+-------------------+----------------+
+-- |         11 | Sneha    | Hyderabad  | 2026-09-18 | 13:00:00     | Healthy Lunch     |           2 | Harpreet Singh  | Healthy Roti-Sabzi Meal     | Customer          | Completed      |
+-- |         12 | Priya    | Guntur     | 2026-09-26 | 19:30:00     | Home Dinner       |           4 | Ramesh Naidu    | South Indian Tiffin Special | Chef              | Completed      |
+-- |         13 | Karthik  | Bengaluru  | 2026-10-03 | 12:30:00     | Healthy Lunch     |           2 | Marco Fernandes | Light and Healthy Bowl      | Chef              | Confirmed      |
+-- |         14 | Suresh   | Vijayawada | 2026-10-06 | 20:00:00     | Home Dinner       |           3 | Lakshmi Reddy   | Homestyle Andhra Meal       | Customer          | Pending        |
+-- |         15 | Ravi     | Vijayawada | 2026-10-08 | 08:30:00     | Healthy Breakfast |           2 | Lakshmi Reddy   | Homestyle Andhra Meal       | Chef              | Confirmed      |
+-- +------------+----------+------------+------------+--------------+-------------------+-------------+-----------------+-----------------------------+-------------------+----------------+
+-- 5 rows in set
+
+
+-- M13. Bookings where the chef fetches the ingredients: cost recorded and amount paid back so far.
+SELECT b.booking_id, e.service_type, e.event_type, ch.chef_name, b.ingredient_cost,
+       IFNULL((SELECT SUM(p.amount) FROM payments p
+               WHERE p.booking_id = b.booking_id
+                 AND p.payment_type = 'Ingredients'
+                 AND p.payment_status = 'Success'), 0) AS ingredient_paid
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+WHERE b.ingredient_source = 'Chef';
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+---------------+-------------------+-----------------+-----------------+-----------------+
+-- | booking_id | service_type  | event_type        | chef_name       | ingredient_cost | ingredient_paid |
+-- +------------+---------------+-------------------+-----------------+-----------------+-----------------+
+-- |          3 | Event         | Corporate Lunch   | Harpreet Singh  |         6000.00 |         6000.00 |
+-- |         12 | Personal Chef | Home Dinner       | Ramesh Naidu    |         1200.00 |         1200.00 |
+-- |         13 | Personal Chef | Healthy Lunch     | Marco Fernandes |            0.00 |               0 |
+-- |         15 | Personal Chef | Healthy Breakfast | Lakshmi Reddy   |            0.00 |               0 |
+-- +------------+---------------+-------------------+-----------------+-----------------+-----------------+
+-- 4 rows in set
+
+
+-- M14. Ingredient source by service type: how many bookings use home ingredients and how many chef-bought.
+SELECT e.service_type, b.ingredient_source,
+       COUNT(*) AS total_bookings,
+       SUM(b.ingredient_cost) AS ingredient_cost_total
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+GROUP BY e.service_type, b.ingredient_source
+ORDER BY e.service_type, b.ingredient_source;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +---------------+-------------------+----------------+-----------------------+
+-- | service_type  | ingredient_source | total_bookings | ingredient_cost_total |
+-- +---------------+-------------------+----------------+-----------------------+
+-- | Event         | Chef              |              1 |               6000.00 |
+-- | Event         | Customer          |              9 |                  0.00 |
+-- | Personal Chef | Chef              |              3 |               1200.00 |
+-- | Personal Chef | Customer          |              2 |                  0.00 |
+-- +---------------+-------------------+----------------+-----------------------+
+-- 4 rows in set
+
+
+-- M15. Full bill of one booking: service charge + ingredients, what is paid, and what the chef receives.
+SELECT b.booking_id, e.service_type, b.ingredient_source,
+       m.price_per_person * e.guest_count AS service_charge,
+       b.ingredient_cost,
+       m.price_per_person * e.guest_count + b.ingredient_cost AS grand_total,
+       IFNULL((SELECT SUM(p.amount) FROM payments p
+               WHERE p.booking_id = b.booking_id AND p.payment_status = 'Success'), 0) AS total_paid,
+       ROUND(m.price_per_person * e.guest_count * 0.85 + b.ingredient_cost, 2) AS chef_receives,
+       ROUND(m.price_per_person * e.guest_count * 0.15, 2) AS platform_commission
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN menus m ON b.menu_id = m.menu_id
+WHERE b.booking_id = @pbid;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +------------+---------------+-------------------+----------------+-----------------+-------------+------------+---------------+---------------------+
+-- | booking_id | service_type  | ingredient_source | service_charge | ingredient_cost | grand_total | total_paid | chef_receives | platform_commission |
+-- +------------+---------------+-------------------+----------------+-----------------+-------------+------------+---------------+---------------------+
+-- |         12 | Personal Chef | Chef              |        1400.00 |         1200.00 |     2600.00 |    2600.00 |       2390.00 |              210.00 |
+-- +------------+---------------+-------------------+----------------+-----------------+-------------+------------+---------------+---------------------+
+-- 1 row in set
+
+
+-- M16. Hiring a personal chef: verified chefs in the customer's own city free on a given date.
+SELECT c.first_name AS customer, l.city, ch.chef_name, ch.experience_years,
+       a.availability_dt, a.start_time, a.end_time
+FROM customers c
+JOIN locations l ON c.location_id = l.location_id
+JOIN chefs ch ON ch.location_id = l.location_id
+JOIN chef_availability a ON a.chef_id = ch.chef_id
+WHERE c.customer_id = @cid2
+  AND ch.verification_status = 'Verified'
+  AND a.status = 'Available'
+  AND a.availability_dt = '2026-10-15';
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +----------+-----------+----------------+------------------+-----------------+------------+----------+
+-- | customer | city      | chef_name      | experience_years | availability_dt | start_time | end_time |
+-- +----------+-----------+----------------+------------------+-----------------+------------+----------+
+-- | Sneha    | Hyderabad | Harpreet Singh |               10 | 2026-10-15      | 11:00:00   | 23:00:00 |
+-- +----------+-----------+----------------+------------------+-----------------+------------+----------+
+-- 1 row in set
+
+
+-- M17. Menus of that chef with the cost for a 2-person home meal.
+SELECT ch.chef_name, m.menu_name, m.diet_flag, m.price_per_person,
+       m.price_per_person * 2 AS cost_for_2_people
+FROM chefs ch
+JOIN menus m ON ch.chef_id = m.chef_id
+WHERE ch.chef_id = @chid
+ORDER BY m.price_per_person;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +----------------+-------------------------+-----------+------------------+-------------------+
+-- | chef_name      | menu_name               | diet_flag | price_per_person | cost_for_2_people |
+-- +----------------+-------------------------+-----------+------------------+-------------------+
+-- | Harpreet Singh | Healthy Roti-Sabzi Meal | Veg       |           350.00 |            700.00 |
+-- | Harpreet Singh | North Indian Veg Deluxe | Veg       |           500.00 |           1000.00 |
+-- | Harpreet Singh | Punjabi Dhaba Combo     | Non-Veg   |           550.00 |           1100.00 |
+-- +----------------+-------------------------+-----------+------------------+-------------------+
+-- 3 rows in set
+
+
+-- M18. Monthly money split: service revenue versus ingredient reimbursements paid through the platform.
+SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month,
+       SUM(CASE WHEN payment_type = 'Service' THEN amount ELSE 0 END) AS service_revenue,
+       SUM(CASE WHEN payment_type = 'Ingredients' THEN amount ELSE 0 END) AS ingredient_reimbursement
+FROM payments
+WHERE payment_status = 'Success'
+GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
+ORDER BY month;
+--
+-- RESULT (@bid = 3, @cid = 1, @chid = 3, @pbid = 12, @cid2 = 2):
+-- +---------+-----------------+--------------------------+
+-- | month   | service_revenue | ingredient_reimbursement |
+-- +---------+-----------------+--------------------------+
+-- | 2026-08 |        42000.00 |                  6000.00 |
+-- | 2026-09 |        93325.00 |                  1200.00 |
+-- +---------+-----------------+--------------------------+
+-- 2 rows in set

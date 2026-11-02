@@ -1,0 +1,529 @@
+-- ============================================================
+-- PART 1 : DATABASE CREATION AND DATA INSERTION
+-- PROJECT  : CHEFCONNECT - PERSONAL CHEF BOOKING PLATFORM
+-- DATABASE : chefconnect_db
+-- ============================================================
+
+
+-- ============================================================
+-- 1. CREATE DATABASE
+-- ============================================================
+
+DROP DATABASE IF EXISTS chefconnect_db;
+
+CREATE DATABASE chefconnect_db;
+
+USE chefconnect_db;
+
+
+-- ============================================================
+-- 2. CREATE LOCATIONS TABLE
+-- ============================================================
+
+CREATE TABLE locations (
+    location_id INT PRIMARY KEY AUTO_INCREMENT,
+    area VARCHAR(100) NOT NULL,
+    city VARCHAR(100) NOT NULL
+);
+
+
+-- ============================================================
+-- 3. CREATE USERS TABLE
+-- ============================================================
+
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role ENUM('admin', 'customer', 'chef') NOT NULL
+);
+
+
+-- ============================================================
+-- 4. CREATE CUSTOMERS TABLE
+-- ============================================================
+
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL UNIQUE,
+    location_id INT NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(15),
+
+    CONSTRAINT fk_customer_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id),
+
+    CONSTRAINT fk_customer_location
+        FOREIGN KEY (location_id)
+        REFERENCES locations(location_id)
+);
+
+
+-- ============================================================
+-- 5. CREATE CHEFS TABLE
+-- ============================================================
+
+CREATE TABLE chefs (
+    chef_id INT PRIMARY KEY AUTO_INCREMENT,
+    chef_name VARCHAR(100) NOT NULL,
+    user_id INT NOT NULL UNIQUE,
+    location_id INT NOT NULL,
+    experience_years INT NOT NULL,
+    verification_status ENUM('Pending', 'Verified', 'Rejected') NOT NULL,
+
+    CONSTRAINT fk_chef_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id),
+
+    CONSTRAINT fk_chef_location
+        FOREIGN KEY (location_id)
+        REFERENCES locations(location_id)
+);
+
+
+-- ============================================================
+-- 6. CREATE CUISINES TABLE
+-- ============================================================
+
+CREATE TABLE cuisines (
+    cuisine_id INT PRIMARY KEY AUTO_INCREMENT,
+    cuisine_name VARCHAR(100) NOT NULL UNIQUE
+);
+
+
+-- ============================================================
+-- 7. CREATE CHEF_SPECIALITIES TABLE  (composite primary key)
+-- ============================================================
+
+CREATE TABLE chef_specialities (
+    chef_id INT NOT NULL,
+    cuisine_id INT NOT NULL,
+    skill_level ENUM('Beginner', 'Intermediate', 'Expert') NOT NULL,
+
+    PRIMARY KEY (chef_id, cuisine_id),
+
+    CONSTRAINT fk_speciality_chef
+        FOREIGN KEY (chef_id)
+        REFERENCES chefs(chef_id),
+
+    CONSTRAINT fk_speciality_cuisine
+        FOREIGN KEY (cuisine_id)
+        REFERENCES cuisines(cuisine_id)
+);
+
+
+-- ============================================================
+-- 8. CREATE CHEF_AVAILABILITY TABLE
+-- ============================================================
+
+CREATE TABLE chef_availability (
+    chef_id INT NOT NULL,
+    availability_dt DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    status ENUM('Available', 'Booked', 'Unavailable') NOT NULL,
+
+    PRIMARY KEY (chef_id, availability_dt, start_time),
+
+    CONSTRAINT fk_availability_chef
+        FOREIGN KEY (chef_id)
+        REFERENCES chefs(chef_id)
+);
+
+
+-- ============================================================
+-- 9. CREATE MENUS TABLE
+-- ============================================================
+
+CREATE TABLE menus (
+    menu_id INT PRIMARY KEY AUTO_INCREMENT,
+    chef_id INT NOT NULL,
+    menu_name VARCHAR(100) NOT NULL,
+    price_per_person DECIMAL(10,2) NOT NULL,
+    diet_flag ENUM('Veg', 'Non-Veg', 'Vegan') NOT NULL,
+
+    CONSTRAINT uq_menu_chef UNIQUE (menu_id, chef_id),
+
+    CONSTRAINT fk_menu_chef
+        FOREIGN KEY (chef_id)
+        REFERENCES chefs(chef_id)
+);
+
+
+-- ============================================================
+-- 10. CREATE EVENTS TABLE
+-- ============================================================
+
+CREATE TABLE events (
+    event_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    event_date DATE NOT NULL,
+    service_time TIME NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    service_type ENUM('Event', 'Personal Chef') NOT NULL,
+    guest_count INT NOT NULL,
+    requirements TEXT,
+
+    CONSTRAINT fk_event_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id)
+);
+
+
+-- ============================================================
+-- 11. CREATE BOOKINGS TABLE
+-- ============================================================
+
+CREATE TABLE bookings (
+    booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    event_id INT NOT NULL,
+    chef_id INT NOT NULL,
+    menu_id INT NOT NULL,
+    booking_status ENUM('Pending', 'Confirmed', 'Completed', 'Cancelled') NOT NULL,
+    ingredient_source ENUM('Customer', 'Chef') NOT NULL DEFAULT 'Customer',
+    ingredient_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+
+    CONSTRAINT chk_ingredient
+        CHECK (ingredient_source = 'Chef' OR ingredient_cost = 0),
+
+    CONSTRAINT fk_booking_event
+        FOREIGN KEY (event_id)
+        REFERENCES events(event_id),
+
+    CONSTRAINT fk_booking_chef
+        FOREIGN KEY (chef_id)
+        REFERENCES chefs(chef_id),
+
+    CONSTRAINT fk_booking_menu_chef
+        FOREIGN KEY (menu_id, chef_id)
+        REFERENCES menus(menu_id, chef_id)
+);
+
+
+-- ============================================================
+-- 12. CREATE PAYMENTS TABLE
+-- ============================================================
+
+CREATE TABLE payments (
+    booking_id INT NOT NULL,
+    payment_method ENUM('Cash', 'UPI', 'Card', 'Net Banking') NOT NULL,
+    payment_status ENUM('Success', 'Pending', 'Failed') NOT NULL,
+    payment_type ENUM('Service', 'Ingredients') NOT NULL DEFAULT 'Service',
+    amount DECIMAL(10,2) NOT NULL,
+    payment_date DATETIME NOT NULL,
+
+    PRIMARY KEY (booking_id, payment_date, payment_type),
+
+    CONSTRAINT fk_payment_booking
+        FOREIGN KEY (booking_id)
+        REFERENCES bookings(booking_id)
+);
+
+
+-- ============================================================
+-- 13. CREATE REVIEWS TABLE
+-- ============================================================
+
+CREATE TABLE reviews (
+    booking_id INT PRIMARY KEY,
+    rating INT NOT NULL,
+
+    CONSTRAINT chk_review_rating CHECK (rating BETWEEN 1 AND 5),
+
+    CONSTRAINT fk_review_booking
+        FOREIGN KEY (booking_id)
+        REFERENCES bookings(booking_id)
+);
+
+
+-- ============================================================
+-- 14. INSERT DATA INTO LOCATIONS
+-- ============================================================
+
+INSERT INTO locations
+(area, city)
+VALUES
+('Benz Circle', 'Vijayawada'),
+('Banjara Hills', 'Hyderabad'),
+('MVP Colony', 'Visakhapatnam'),
+('Brodipet', 'Guntur'),
+('Indiranagar', 'Bengaluru');
+
+
+-- ============================================================
+-- 15. INSERT DATA INTO USERS
+-- (1 admin, 8 customers, 6 chefs)
+-- ============================================================
+
+INSERT INTO users
+(email, role)
+VALUES
+('admin@chefconnect.com', 'admin'),
+('ravi.kumar@gmail.com', 'customer'),
+('sneha.reddy@gmail.com', 'customer'),
+('arjun.varma@gmail.com', 'customer'),
+('priya.sharma@gmail.com', 'customer'),
+('karthik.nair@gmail.com', 'customer'),
+('meena.iyer@gmail.com', 'customer'),
+('suresh.babu@gmail.com', 'customer'),
+('divya.rao@gmail.com', 'customer'),
+('lakshmi.reddy@chefconnect.com', 'chef'),
+('ramesh.naidu@chefconnect.com', 'chef'),
+('harpreet.singh@chefconnect.com', 'chef'),
+('vikram.chowdary@chefconnect.com', 'chef'),
+('marco.fernandes@chefconnect.com', 'chef'),
+('tanvi.kulkarni@chefconnect.com', 'chef');
+
+
+-- ============================================================
+-- 16. INSERT DATA INTO CUSTOMERS
+-- ============================================================
+
+INSERT INTO customers
+(user_id, location_id, first_name, phone)
+VALUES
+(2, 1, 'Ravi', '9876500001'),
+(3, 2, 'Sneha', '9876500002'),
+(4, 3, 'Arjun', '9876500003'),
+(5, 4, 'Priya', '9876500004'),
+(6, 5, 'Karthik', '9876500005'),
+(7, 2, 'Meena', '9876500006'),
+(8, 1, 'Suresh', '9876500007'),
+(9, 3, 'Divya', '9876500008');
+
+
+-- ============================================================
+-- 17. INSERT DATA INTO CHEFS
+-- ============================================================
+
+INSERT INTO chefs
+(chef_name, user_id, location_id, experience_years, verification_status)
+VALUES
+('Lakshmi Reddy', 10, 1, 8, 'Verified'),
+('Ramesh Naidu', 11, 4, 5, 'Verified'),
+('Harpreet Singh', 12, 2, 10, 'Verified'),
+('Vikram Chowdary', 13, 3, 6, 'Verified'),
+('Marco Fernandes', 14, 5, 12, 'Verified'),
+('Tanvi Kulkarni', 15, 2, 2, 'Pending');
+
+
+-- ============================================================
+-- 18. INSERT DATA INTO CUISINES
+-- ============================================================
+
+INSERT INTO cuisines
+(cuisine_name)
+VALUES
+('North Indian'),
+('South Indian'),
+('Andhra'),
+('Chinese'),
+('Italian'),
+('Continental');
+
+
+-- ============================================================
+-- 19. INSERT DATA INTO CHEF_SPECIALITIES
+-- ============================================================
+
+INSERT INTO chef_specialities
+(chef_id, cuisine_id, skill_level)
+VALUES
+(1, 3, 'Expert'),
+(1, 2, 'Expert'),
+(2, 2, 'Expert'),
+(2, 3, 'Intermediate'),
+(3, 1, 'Expert'),
+(3, 4, 'Intermediate'),
+(4, 4, 'Expert'),
+(4, 1, 'Intermediate'),
+(5, 5, 'Expert'),
+(5, 6, 'Expert'),
+(6, 6, 'Beginner'),
+(6, 5, 'Beginner');
+
+
+-- ============================================================
+-- 20. INSERT DATA INTO CHEF_AVAILABILITY
+-- ============================================================
+
+INSERT INTO chef_availability
+(chef_id, availability_dt, start_time, end_time, status)
+VALUES
+(1, '2026-10-10', '10:00:00', '22:00:00', 'Available'),
+(1, '2026-10-11', '10:00:00', '22:00:00', 'Booked'),
+(2, '2026-10-12', '09:00:00', '21:00:00', 'Available'),
+(3, '2026-10-15', '11:00:00', '23:00:00', 'Available'),
+(3, '2026-10-16', '11:00:00', '23:00:00', 'Booked'),
+(4, '2026-10-18', '10:00:00', '20:00:00', 'Available'),
+(4, '2026-10-19', '10:00:00', '20:00:00', 'Unavailable'),
+(5, '2026-10-20', '12:00:00', '23:00:00', 'Available'),
+(5, '2026-10-25', '12:00:00', '23:00:00', 'Available'),
+(6, '2026-11-01', '10:00:00', '18:00:00', 'Available');
+
+
+-- ============================================================
+-- 21. INSERT DATA INTO MENUS
+-- ============================================================
+
+INSERT INTO menus
+(chef_id, menu_name, price_per_person, diet_flag)
+VALUES
+(1, 'Andhra Feast', 650.00, 'Non-Veg'),
+(1, 'Royal Veg Thali', 450.00, 'Veg'),
+(2, 'South Indian Tiffin Special', 350.00, 'Veg'),
+(3, 'Punjabi Dhaba Combo', 550.00, 'Non-Veg'),
+(3, 'North Indian Veg Deluxe', 500.00, 'Veg'),
+(4, 'Indo-Chinese Delight', 400.00, 'Veg'),
+(4, 'Wok Non-Veg Special', 600.00, 'Non-Veg'),
+(5, 'Italian Pasta Night', 800.00, 'Veg'),
+(5, 'Continental Grill', 1200.00, 'Non-Veg'),
+(6, 'Vegan Wellness Menu', 700.00, 'Vegan'),
+(1, 'Homestyle Andhra Meal', 300.00, 'Veg'),
+(3, 'Healthy Roti-Sabzi Meal', 350.00, 'Veg'),
+(5, 'Light and Healthy Bowl', 500.00, 'Veg');
+
+
+-- ============================================================
+-- 22. INSERT DATA INTO EVENTS
+-- ============================================================
+
+INSERT INTO events
+(customer_id, event_date, service_time, event_type, service_type, guest_count, requirements)
+VALUES
+(1, '2026-08-15', '18:00:00', 'Birthday Party', 'Event', 20, 'Less spicy, no onions'),
+(2, '2026-08-22', '20:00:00', 'Wedding Anniversary', 'Event', 30, 'Candle-light dinner setup'),
+(3, '2026-09-05', '13:00:00', 'Corporate Lunch', 'Event', 50, 'Live counters'),
+(4, '2026-09-12', '11:00:00', 'House Warming', 'Event', 40, 'Traditional leaf serving'),
+(5, '2026-09-20', '17:00:00', 'Birthday Party', 'Event', 15, 'Kid-friendly menu'),
+(1, '2026-10-10', '12:30:00', 'Family Gathering', 'Event', 25, 'Jain options for 5 guests'),
+(2, '2026-10-15', '20:30:00', 'Dinner Party', 'Event', 12, 'Wine pairing suggestions'),
+(6, '2026-10-18', '19:00:00', 'Corporate Dinner', 'Event', 60, 'Projector for a short talk'),
+(7, '2026-10-20', '19:00:00', 'Engagement', 'Event', 80, 'Multi-cuisine buffet'),
+(5, '2026-10-25', '18:30:00', 'Farewell Party', 'Event', 35, 'Vegan options required'),
+
+-- personal chef bookings: the chef cooks at the customer's home
+(2, '2026-09-18', '13:00:00', 'Healthy Lunch', 'Personal Chef', 2, 'Low oil, high protein'),
+(4, '2026-09-26', '19:30:00', 'Home Dinner', 'Personal Chef', 4, 'Traditional Guntur-style meal'),
+(5, '2026-10-03', '12:30:00', 'Healthy Lunch', 'Personal Chef', 2, 'No processed food'),
+(7, '2026-10-06', '20:00:00', 'Home Dinner', 'Personal Chef', 3, 'Mild spice, use ingredients at home'),
+(1, '2026-10-08', '08:30:00', 'Healthy Breakfast', 'Personal Chef', 2, 'Chef to buy fresh vegetables');
+
+
+-- ============================================================
+-- 23. INSERT DATA INTO BOOKINGS
+-- ============================================================
+
+INSERT INTO bookings
+(event_id, chef_id, menu_id, booking_status, ingredient_source, ingredient_cost)
+VALUES
+(1, 1, 1, 'Completed', 'Customer', 0),
+(2, 3, 4, 'Completed', 'Customer', 0),
+(3, 3, 5, 'Completed', 'Chef', 6000.00),
+(4, 2, 3, 'Completed', 'Customer', 0),
+(5, 5, 8, 'Completed', 'Customer', 0),
+(6, 1, 2, 'Confirmed', 'Customer', 0),
+(7, 3, 4, 'Confirmed', 'Customer', 0),
+(8, 3, 5, 'Pending', 'Customer', 0),
+(9, 1, 1, 'Cancelled', 'Customer', 0),
+(10, 5, 8, 'Confirmed', 'Customer', 0),
+
+-- personal chef bookings (chef = menu owner)
+(11, 3, 12, 'Completed', 'Customer', 0),
+(12, 2, 3, 'Completed', 'Chef', 1200.00),
+(13, 5, 13, 'Confirmed', 'Chef', 0),
+(14, 1, 11, 'Pending', 'Customer', 0),
+(15, 1, 11, 'Confirmed', 'Chef', 0);
+
+
+-- ============================================================
+-- 24. INSERT DATA INTO PAYMENTS
+-- ============================================================
+
+INSERT INTO payments
+(booking_id, payment_method, payment_status, amount, payment_date, payment_type)
+VALUES
+(1, 'UPI', 'Success', 6500.00, '2026-08-01 10:00:00', 'Service'),
+(1, 'Card', 'Success', 6500.00, '2026-08-14 12:00:00', 'Service'),
+
+(2, 'Card', 'Success', 16500.00, '2026-08-10 11:00:00', 'Service'),
+
+(3, 'Net Banking', 'Success', 12500.00, '2026-08-25 09:30:00', 'Service'),
+(3, 'Net Banking', 'Success', 12500.00, '2026-09-04 09:30:00', 'Service'),
+
+(4, 'UPI', 'Failed', 14000.00, '2026-09-01 14:00:00', 'Service'),
+(4, 'UPI', 'Success', 14000.00, '2026-09-02 14:10:00', 'Service'),
+
+(5, 'Card', 'Success', 12000.00, '2026-09-10 16:00:00', 'Service'),
+
+(6, 'UPI', 'Success', 5625.00, '2026-09-25 10:00:00', 'Service'),
+(6, 'Cash', 'Pending', 5625.00, '2026-09-29 11:00:00', 'Service'),
+
+(7, 'Card', 'Success', 6600.00, '2026-09-27 13:00:00', 'Service'),
+
+(8, 'Net Banking', 'Pending', 30000.00, '2026-09-29 15:00:00', 'Service'),
+
+(9, 'UPI', 'Success', 26000.00, '2026-09-20 10:00:00', 'Service'),
+
+(10, 'Card', 'Success', 14000.00, '2026-09-28 17:00:00', 'Service'),
+
+-- ingredient reimbursements and the new personal-chef bookings
+(3, 'Net Banking', 'Success', 6000.00, '2026-08-24 09:00:00', 'Ingredients'),
+(11, 'UPI', 'Success', 700.00, '2026-09-17 10:00:00', 'Service'),
+(12, 'UPI', 'Success', 1400.00, '2026-09-25 10:00:00', 'Service'),
+(12, 'UPI', 'Success', 1200.00, '2026-09-26 18:00:00', 'Ingredients'),
+(13, 'Card', 'Success', 500.00, '2026-09-29 09:00:00', 'Service'),
+(14, 'UPI', 'Pending', 900.00, '2026-09-30 08:00:00', 'Service'),
+(15, 'Cash', 'Pending', 600.00, '2026-09-30 09:00:00', 'Service');
+
+
+-- ============================================================
+-- 25. INSERT DATA INTO REVIEWS
+-- ============================================================
+
+INSERT INTO reviews
+(booking_id, rating)
+VALUES
+(1, 5),
+(2, 4),
+(3, 4),
+(4, 5),
+(5, 3),
+(11, 5),
+(12, 4);
+
+
+-- ============================================================
+-- 26. VIEWS FOR THE DERIVED ATTRIBUTES (calculated, never stored)
+-- ============================================================
+
+-- BOOKINGS.booking_total, grand_total, balance_due, chef_payout, platform_commission
+CREATE VIEW booking_financials AS
+SELECT b.booking_id,
+       m.price_per_person * e.guest_count AS booking_total,
+       m.price_per_person * e.guest_count + b.ingredient_cost AS grand_total,
+       m.price_per_person * e.guest_count
+         - IFNULL((SELECT SUM(p.amount) FROM payments p
+                   WHERE p.booking_id = b.booking_id
+                     AND p.payment_status = 'Success'
+                     AND p.payment_type = 'Service'), 0) AS balance_due,
+       ROUND(m.price_per_person * e.guest_count * 0.85 + b.ingredient_cost, 2) AS chef_payout,
+       ROUND(m.price_per_person * e.guest_count * 0.15, 2) AS platform_commission
+FROM bookings b
+JOIN menus  m ON b.menu_id  = m.menu_id
+JOIN events e ON b.event_id = e.event_id;
+
+-- CHEFS.avg_rating
+CREATE VIEW chef_avg_rating AS
+SELECT ch.chef_id, ch.chef_name, ROUND(AVG(r.rating), 2) AS avg_rating
+FROM chefs ch
+LEFT JOIN bookings b ON b.chef_id = ch.chef_id
+LEFT JOIN reviews  r ON r.booking_id = b.booking_id
+GROUP BY ch.chef_id, ch.chef_name;
+
+
+-- ============================================================
+-- 27. VERIFY THE DATABASE
+-- ============================================================
+
+SHOW TABLES;

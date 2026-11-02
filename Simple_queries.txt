@@ -1,0 +1,208 @@
+USE chefconnect_db;
+
+-- =========================================================
+-- SIMPLE QUERIES
+-- Q1 - Q40
+-- SELECT *, WHERE, AND / OR / NOT, LIKE, BETWEEN, IN,
+-- ORDER BY, LIMIT, DISTINCT and the basic data commands
+-- (INSERT, UPDATE, DELETE, ALTER, RENAME, DROP)
+-- =========================================================
+
+
+-- =========================================================
+-- 1. SELECT * AND SELECTING COLUMNS
+-- =========================================================
+
+-- Q1. Display all locations.
+SELECT * FROM locations;
+
+-- Q2. Display all users.
+SELECT * FROM users;
+
+-- Q3. Display all customers.
+SELECT * FROM customers;
+
+-- Q4. Display all chefs.
+SELECT * FROM chefs;
+
+-- Q5. Display all cuisines.
+SELECT * FROM cuisines;
+
+-- Q6. Display all menus.
+SELECT * FROM menus;
+
+-- Q7. Display all events.
+SELECT * FROM events;
+
+-- Q8. Display all bookings.
+SELECT * FROM bookings;
+
+-- Q9. Display all payments.
+SELECT * FROM payments;
+
+-- Q10. Display all reviews.
+SELECT * FROM reviews;
+
+-- Q11. Display all chef availability records.
+SELECT * FROM chef_availability;
+
+-- Q12. Display all chef specialities.
+SELECT * FROM chef_specialities;
+
+-- Q13. Display chef names and experience years.
+SELECT chef_name, experience_years
+FROM chefs;
+
+-- Q14. Display customer first names and phone numbers.
+SELECT first_name, phone
+FROM customers;
+
+
+-- =========================================================
+-- 2. FILTERING (WHERE, AND, OR, NOT, LIKE, BETWEEN, IN)
+-- =========================================================
+
+-- Q15. Display all verified chefs.
+SELECT chef_id, chef_name, experience_years
+FROM chefs
+WHERE verification_status = 'Verified';
+
+-- Q16. Display chefs having more than 8 years of experience.
+SELECT chef_name, experience_years
+FROM chefs
+WHERE experience_years > 8;
+
+-- Q17. Display menus whose price per person is above 600.
+SELECT menu_name, price_per_person
+FROM menus
+WHERE price_per_person > 600;
+
+-- Q18. Display all vegetarian menus.
+SELECT menu_name, price_per_person
+FROM menus
+WHERE diet_flag = 'Veg';
+
+-- Q19. AND: display vegetarian menus priced below 500.
+SELECT menu_name, price_per_person, diet_flag
+FROM menus
+WHERE diet_flag = 'Veg' AND price_per_person < 500;
+
+-- Q20. OR: display menus that are Vegan or priced above 1000.
+SELECT menu_name, price_per_person, diet_flag
+FROM menus
+WHERE diet_flag = 'Vegan' OR price_per_person > 1000;
+
+-- Q21. BETWEEN: display menus priced between 400 and 700.
+SELECT menu_name, price_per_person
+FROM menus
+WHERE price_per_person BETWEEN 400 AND 700;
+
+-- Q22. LIKE: display customers whose first name starts with 'S'.
+SELECT customer_id, first_name
+FROM customers
+WHERE first_name LIKE 'S%';
+
+-- Q23. LIKE: display users having a gmail address.
+SELECT user_id, email, role
+FROM users
+WHERE email LIKE '%@gmail.com';
+
+-- Q24. IN: display bookings that are Completed or Confirmed.
+SELECT booking_id, chef_id, booking_status
+FROM bookings
+WHERE booking_status IN ('Completed', 'Confirmed');
+
+-- Q25. Display all birthday party events.
+SELECT event_id, customer_id, event_date, guest_count
+FROM events
+WHERE event_type = 'Birthday Party';
+
+-- Q26. NOT IN: display bookings that are neither Pending nor Cancelled.
+SELECT booking_id, chef_id, booking_status
+FROM bookings
+WHERE booking_status NOT IN ('Pending', 'Cancelled');
+
+-- Q27. IN: display failed or pending payments.
+SELECT booking_id, payment_date, payment_status, amount
+FROM payments
+WHERE payment_status IN ('Failed', 'Pending');
+
+
+-- =========================================================
+-- 3. SORTING, LIMIT AND DISTINCT
+-- =========================================================
+
+-- Q28. Display menus from the highest to the lowest price.
+SELECT menu_name, price_per_person
+FROM menus
+ORDER BY price_per_person DESC, menu_name;
+
+-- Q29. Display the 3 most experienced chefs.
+SELECT chef_name, experience_years
+FROM chefs
+ORDER BY experience_years DESC
+LIMIT 3;
+
+-- Q30. Display events in date order (earliest first).
+SELECT event_id, event_type, event_date
+FROM events
+ORDER BY event_date ASC;
+
+-- Q31. Display the different event types (no repeats).
+SELECT DISTINCT event_type
+FROM events
+ORDER BY event_type;
+
+
+-- =========================================================
+-- 4. DATA COMMANDS: INSERT, UPDATE, DELETE, ALTER, RENAME, DROP
+-- These commands CHANGE data or table structure, so they are
+-- practised on a copy of the menus table (practice_menus).
+-- The real tables are never touched.
+-- =========================================================
+
+-- Q32. Create a practice copy of the menus table.
+DROP TABLE IF EXISTS practice_menus;
+CREATE TABLE practice_menus AS SELECT * FROM menus;
+SELECT * FROM practice_menus;
+
+-- Q33. INSERT: add a new menu to the practice table.
+INSERT INTO practice_menus (menu_id, chef_id, menu_name, price_per_person, diet_flag)
+VALUES (14, 6, 'Vegan Protein Bowl', 650.00, 'Vegan');
+SELECT * FROM practice_menus WHERE menu_id = 14;
+
+-- Q34. UPDATE one row: change the price of menu 14 to 750.
+UPDATE practice_menus
+SET price_per_person = 750.00
+WHERE menu_id = 14;
+SELECT menu_name, price_per_person FROM practice_menus WHERE menu_id = 14;
+
+-- Q35. UPDATE many rows: raise the price of vegetarian menus below 500 by 10%.
+UPDATE practice_menus
+SET price_per_person = price_per_person * 1.10
+WHERE diet_flag = 'Veg' AND price_per_person < 500;
+SELECT menu_id, menu_name, price_per_person
+FROM practice_menus
+WHERE diet_flag = 'Veg'
+ORDER BY menu_id;
+
+-- Q36. DELETE: remove the menu added in Q33.
+DELETE FROM practice_menus
+WHERE menu_id = 14;
+SELECT menu_id, menu_name FROM practice_menus WHERE menu_id = 14;
+
+-- Q37. ALTER TABLE: add a new column.
+ALTER TABLE practice_menus ADD COLUMN is_special VARCHAR(3) DEFAULT 'No';
+SELECT menu_id, menu_name, is_special FROM practice_menus ORDER BY menu_id LIMIT 3;
+
+-- Q38. RENAME COLUMN: rename price_per_person to price.
+ALTER TABLE practice_menus RENAME COLUMN price_per_person TO price;
+SELECT menu_id, menu_name, price FROM practice_menus ORDER BY menu_id LIMIT 3;
+
+-- Q39. RENAME TABLE: rename practice_menus to practice_menu_list.
+RENAME TABLE practice_menus TO practice_menu_list;
+SHOW TABLES;
+
+-- Q40. DROP TABLE: delete the practice table.
+DROP TABLE practice_menu_list;
+SHOW TABLES;

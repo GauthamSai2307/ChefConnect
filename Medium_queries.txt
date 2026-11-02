@@ -1,0 +1,233 @@
+USE chefconnect_db;
+
+-- =========================================================
+-- MEDIUM QUERIES
+-- Q41 - Q70
+-- Aggregate functions and JOINS
+-- =========================================================
+
+
+-- =========================================================
+-- A. AGGREGATE FUNCTIONS (COUNT, SUM, AVG, MIN, MAX)
+-- =========================================================
+
+-- Q41. Count the total number of customers.
+SELECT COUNT(*) AS total_customers
+FROM customers;
+
+-- Q42. Count the total number of bookings.
+SELECT COUNT(*) AS total_bookings
+FROM bookings;
+
+-- Q43. Find the total revenue from successful payments.
+SELECT SUM(amount) AS total_revenue
+FROM payments
+WHERE payment_status = 'Success' AND payment_type = 'Service';
+
+-- Q44. Find the average menu price per person.
+SELECT ROUND(AVG(price_per_person), 2) AS avg_menu_price
+FROM menus;
+
+-- Q45. Find the highest and lowest menu prices.
+SELECT MAX(price_per_person) AS highest_price,
+       MIN(price_per_person) AS lowest_price
+FROM menus;
+
+-- Q46. Find the average review rating.
+SELECT ROUND(AVG(rating), 2) AS avg_rating
+FROM reviews;
+
+
+-- =========================================================
+-- B. INNER JOINS
+-- =========================================================
+
+-- Q47. Display customer names with their area and city.
+SELECT c.first_name, l.area, l.city
+FROM customers c
+JOIN locations l ON c.location_id = l.location_id
+ORDER BY c.customer_id;
+
+-- Q48. Display chef names with their city and verification status.
+SELECT ch.chef_name, l.city, ch.verification_status
+FROM chefs ch
+JOIN locations l ON ch.location_id = l.location_id
+ORDER BY ch.chef_id;
+
+-- Q49. Display chef names with the cuisines they specialise in.
+SELECT ch.chef_name, cu.cuisine_name, cs.skill_level
+FROM chef_specialities cs
+JOIN chefs ch ON cs.chef_id = ch.chef_id
+JOIN cuisines cu ON cs.cuisine_id = cu.cuisine_id
+ORDER BY ch.chef_name, cu.cuisine_name;
+
+-- Q50. Display menus with the chef who offers them.
+SELECT m.menu_name, m.price_per_person, ch.chef_name
+FROM menus m
+JOIN chefs ch ON m.chef_id = ch.chef_id
+ORDER BY m.menu_id;
+
+-- Q51. Display bookings with event type, chef name and menu name.
+SELECT b.booking_id, e.event_type, ch.chef_name, m.menu_name, b.booking_status
+FROM bookings b
+JOIN events e ON b.event_id = e.event_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN menus m ON b.menu_id = m.menu_id
+ORDER BY b.booking_id;
+
+-- Q52. Display payments with the customer who made them.
+SELECT p.booking_id, p.payment_date, c.first_name, p.payment_method, p.amount, p.payment_status
+FROM payments p
+JOIN bookings b ON p.booking_id = b.booking_id
+JOIN events e ON b.event_id = e.event_id
+JOIN customers c ON e.customer_id = c.customer_id
+ORDER BY p.booking_id, p.payment_date;
+
+-- Q53. Display reviews with the chef who received them.
+SELECT r.booking_id, ch.chef_name, r.rating
+FROM reviews r
+JOIN bookings b ON r.booking_id = b.booking_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+ORDER BY r.booking_id;
+
+
+-- =========================================================
+-- C. LEFT, RIGHT, SELF AND CROSS JOINS
+-- =========================================================
+
+-- Q54. LEFT JOIN: find customers who have not planned any event.
+SELECT c.customer_id, c.first_name
+FROM customers c
+LEFT JOIN events e ON c.customer_id = e.customer_id
+WHERE e.event_id IS NULL;
+
+-- Q55. LEFT JOIN: find chefs who have no bookings.
+SELECT ch.chef_id, ch.chef_name
+FROM chefs ch
+LEFT JOIN bookings b ON ch.chef_id = b.chef_id
+WHERE b.booking_id IS NULL;
+
+-- Q56. RIGHT JOIN: find bookings that have no review.
+SELECT b.booking_id, b.booking_status
+FROM reviews r
+RIGHT JOIN bookings b ON r.booking_id = b.booking_id
+WHERE r.booking_id IS NULL
+ORDER BY b.booking_id;
+
+-- Q57. SELF JOIN: find pairs of chefs who work in the same city.
+SELECT a.chef_name AS chef_1, b.chef_name AS chef_2, l.city
+FROM chefs a
+JOIN chefs b ON a.location_id = b.location_id AND a.chef_id < b.chef_id
+JOIN locations l ON a.location_id = l.location_id;
+
+-- Q58. CROSS JOIN: pair every chef with every cuisine (all combinations).
+SELECT ch.chef_name, cu.cuisine_name
+FROM chefs ch
+CROSS JOIN cuisines cu
+ORDER BY ch.chef_id, cu.cuisine_id;
+
+
+-- =========================================================
+-- D. GROUP BY AND HAVING (with joins)
+-- =========================================================
+
+-- Q59. Count customers in each city.
+SELECT l.city, COUNT(*) AS total_customers
+FROM customers c
+JOIN locations l ON c.location_id = l.location_id
+GROUP BY l.city
+ORDER BY l.city;
+
+-- Q60. Count menus offered by each chef.
+SELECT ch.chef_name, COUNT(m.menu_id) AS total_menus
+FROM chefs ch
+LEFT JOIN menus m ON ch.chef_id = m.chef_id
+GROUP BY ch.chef_id, ch.chef_name
+ORDER BY ch.chef_id;
+
+-- Q61. Count payments for each payment method.
+SELECT payment_method, COUNT(*) AS total_payments
+FROM payments
+GROUP BY payment_method
+ORDER BY total_payments DESC, payment_method;
+
+-- Q62. Find the revenue collected by each payment method (successful only).
+SELECT payment_method, SUM(amount) AS revenue
+FROM payments
+WHERE payment_status = 'Success' AND payment_type = 'Service'
+GROUP BY payment_method
+ORDER BY revenue DESC;
+
+-- Q63. Find the average rating received by each chef.
+SELECT ch.chef_name, ROUND(AVG(r.rating), 2) AS avg_rating
+FROM reviews r
+JOIN bookings b ON r.booking_id = b.booking_id
+JOIN chefs ch ON b.chef_id = ch.chef_id
+GROUP BY ch.chef_id, ch.chef_name
+ORDER BY ch.chef_id;
+
+-- Q64. Find the total guests served for each event type.
+SELECT event_type, SUM(guest_count) AS total_guests
+FROM events
+GROUP BY event_type
+ORDER BY total_guests DESC, event_type;
+
+-- Q65. HAVING: find chefs having more than one booking.
+SELECT ch.chef_name, COUNT(b.booking_id) AS total_bookings
+FROM chefs ch
+JOIN bookings b ON ch.chef_id = b.chef_id
+GROUP BY ch.chef_id, ch.chef_name
+HAVING COUNT(b.booking_id) > 1
+ORDER BY total_bookings DESC, ch.chef_name;
+
+-- Q66. HAVING: find customers whose total successful payments exceed 20000.
+SELECT c.first_name, SUM(p.amount) AS total_paid
+FROM customers c
+JOIN events e ON c.customer_id = e.customer_id
+JOIN bookings b ON e.event_id = b.event_id
+JOIN payments p ON b.booking_id = p.booking_id
+WHERE p.payment_status = 'Success' AND p.payment_type = 'Service'
+GROUP BY c.customer_id, c.first_name
+HAVING SUM(p.amount) > 20000
+ORDER BY total_paid DESC;
+
+
+-- =========================================================
+-- E. BUSINESS ANALYSIS (joins + aggregates)
+-- =========================================================
+
+-- Q67. Find the total booking value of each booking (menu price x guests).
+SELECT b.booking_id, m.price_per_person, e.guest_count,
+       m.price_per_person * e.guest_count AS booking_total
+FROM bookings b
+JOIN menus m ON b.menu_id = m.menu_id
+JOIN events e ON b.event_id = e.event_id
+ORDER BY b.booking_id;
+
+-- Q68. Find the platform commission (15% of each Completed booking total).
+SELECT b.booking_id,
+       m.price_per_person * e.guest_count AS booking_total,
+       ROUND(m.price_per_person * e.guest_count * 0.15, 2) AS commission
+FROM bookings b
+JOIN menus m ON b.menu_id = m.menu_id
+JOIN events e ON b.event_id = e.event_id
+WHERE b.booking_status = 'Completed'
+ORDER BY b.booking_id;
+
+-- Q69. Find the chef payout (85% of Completed booking totals) earned by each chef.
+SELECT ch.chef_name,
+       ROUND(SUM(m.price_per_person * e.guest_count * 0.85), 2) AS total_payout
+FROM bookings b
+JOIN chefs ch ON b.chef_id = ch.chef_id
+JOIN menus m ON b.menu_id = m.menu_id
+JOIN events e ON b.event_id = e.event_id
+WHERE b.booking_status = 'Completed'
+GROUP BY ch.chef_id, ch.chef_name
+ORDER BY total_payout DESC;
+
+-- Q70. Find the monthly revenue from successful payments.
+SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount) AS revenue
+FROM payments
+WHERE payment_status = 'Success' AND payment_type = 'Service'
+GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
+ORDER BY month;

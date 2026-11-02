@@ -1,0 +1,1933 @@
+=====================================================================
+CHEFCONNECT - QUERY EXECUTION OUTPUT (Q1 - Q100)
+Database : chefconnect_db
+NOTE     : Results below were produced by running every query of
+           Simple_queries.txt (Q1 - Q40), Medium_queries.txt (Q41 - Q70) and
+           Hard_queries.txt (Q71 - Q100), in that order, against the data in
+           Database_Creation_Insertion.txt.
+           MySQL was not available in the build environment, so the run used
+           the SQLite 3.45 engine with the MySQL functions DATE_FORMAT,
+           DATEDIFF, CURDATE, NOW and CONCAT emulated.
+           Stored procedures (Q85 - Q91), triggers (Q92 - Q97) and the stored
+           function (Q99) cannot be created in SQLite, so the same rules were
+           implemented as equivalent SQLite triggers and helper code and every
+           test written in Hard_queries.txt was run against them. Each test
+           that is meant to fail returned exactly the error message written in
+           Hard_queries.txt.
+           In your own MySQL run you will also see: "(0.00 sec)" timings, a
+           "Rows matched / Changed" line after UPDATE, a different changed_at
+           time, and AUTO_INCREMENT numbers that keep counting after a
+           ROLLBACK (MySQL never reuses them), so a booking_id or log_id can
+           be higher on a second run.
+=====
+
+mysql> -- Q1. Display all locations.
+mysql> SELECT * FROM locations;
++-------------+---------------+---------------+
+| location_id | area          | city          |
++-------------+---------------+---------------+
+|           1 | Benz Circle   | Vijayawada    |
+|           2 | Banjara Hills | Hyderabad     |
+|           3 | MVP Colony    | Visakhapatnam |
+|           4 | Brodipet      | Guntur        |
+|           5 | Indiranagar   | Bengaluru     |
++-------------+---------------+---------------+
+5 rows in set
+
+mysql> -- Q2. Display all users.
+mysql> SELECT * FROM users;
++---------+---------------------------------+----------+
+| user_id | email                           | role     |
++---------+---------------------------------+----------+
+|       1 | admin@chefconnect.com           | admin    |
+|       2 | ravi.kumar@gmail.com            | customer |
+|       3 | sneha.reddy@gmail.com           | customer |
+|       4 | arjun.varma@gmail.com           | customer |
+|       5 | priya.sharma@gmail.com          | customer |
+|       6 | karthik.nair@gmail.com          | customer |
+|       7 | meena.iyer@gmail.com            | customer |
+|       8 | suresh.babu@gmail.com           | customer |
+|       9 | divya.rao@gmail.com             | customer |
+|      10 | lakshmi.reddy@chefconnect.com   | chef     |
+|      11 | ramesh.naidu@chefconnect.com    | chef     |
+|      12 | harpreet.singh@chefconnect.com  | chef     |
+|      13 | vikram.chowdary@chefconnect.com | chef     |
+|      14 | marco.fernandes@chefconnect.com | chef     |
+|      15 | tanvi.kulkarni@chefconnect.com  | chef     |
++---------+---------------------------------+----------+
+15 rows in set
+
+mysql> -- Q3. Display all customers.
+mysql> SELECT * FROM customers;
++-------------+---------+-------------+------------+------------+
+| customer_id | user_id | location_id | first_name |      phone |
++-------------+---------+-------------+------------+------------+
+|           1 |       2 |           1 | Ravi       | 9876500001 |
+|           2 |       3 |           2 | Sneha      | 9876500002 |
+|           3 |       4 |           3 | Arjun      | 9876500003 |
+|           4 |       5 |           4 | Priya      | 9876500004 |
+|           5 |       6 |           5 | Karthik    | 9876500005 |
+|           6 |       7 |           2 | Meena      | 9876500006 |
+|           7 |       8 |           1 | Suresh     | 9876500007 |
+|           8 |       9 |           3 | Divya      | 9876500008 |
++-------------+---------+-------------+------------+------------+
+8 rows in set
+
+mysql> -- Q4. Display all chefs.
+mysql> SELECT * FROM chefs;
++---------+-----------------+---------+-------------+------------------+---------------------+
+| chef_id | chef_name       | user_id | location_id | experience_years | verification_status |
++---------+-----------------+---------+-------------+------------------+---------------------+
+|       1 | Lakshmi Reddy   |      10 |           1 |                8 | Verified            |
+|       2 | Ramesh Naidu    |      11 |           4 |                5 | Verified            |
+|       3 | Harpreet Singh  |      12 |           2 |               10 | Verified            |
+|       4 | Vikram Chowdary |      13 |           3 |                6 | Verified            |
+|       5 | Marco Fernandes |      14 |           5 |               12 | Verified            |
+|       6 | Tanvi Kulkarni  |      15 |           2 |                2 | Pending             |
++---------+-----------------+---------+-------------+------------------+---------------------+
+6 rows in set
+
+mysql> -- Q5. Display all cuisines.
+mysql> SELECT * FROM cuisines;
++------------+--------------+
+| cuisine_id | cuisine_name |
++------------+--------------+
+|          1 | North Indian |
+|          2 | South Indian |
+|          3 | Andhra       |
+|          4 | Chinese      |
+|          5 | Italian      |
+|          6 | Continental  |
++------------+--------------+
+6 rows in set
+
+mysql> -- Q6. Display all menus.
+mysql> SELECT * FROM menus;
++---------+---------+-----------------------------+------------------+-----------+
+| menu_id | chef_id | menu_name                   | price_per_person | diet_flag |
++---------+---------+-----------------------------+------------------+-----------+
+|       1 |       1 | Andhra Feast                |           650.00 | Non-Veg   |
+|       2 |       1 | Royal Veg Thali             |           450.00 | Veg       |
+|       3 |       2 | South Indian Tiffin Special |           350.00 | Veg       |
+|       4 |       3 | Punjabi Dhaba Combo         |           550.00 | Non-Veg   |
+|       5 |       3 | North Indian Veg Deluxe     |           500.00 | Veg       |
+|       6 |       4 | Indo-Chinese Delight        |           400.00 | Veg       |
+|       7 |       4 | Wok Non-Veg Special         |           600.00 | Non-Veg   |
+|       8 |       5 | Italian Pasta Night         |           800.00 | Veg       |
+|       9 |       5 | Continental Grill           |          1200.00 | Non-Veg   |
+|      10 |       6 | Vegan Wellness Menu         |           700.00 | Vegan     |
+|      11 |       1 | Homestyle Andhra Meal       |           300.00 | Veg       |
+|      12 |       3 | Healthy Roti-Sabzi Meal     |           350.00 | Veg       |
+|      13 |       5 | Light and Healthy Bowl      |           500.00 | Veg       |
++---------+---------+-----------------------------+------------------+-----------+
+13 rows in set
+
+mysql> -- Q7. Display all events.
+mysql> SELECT * FROM events;
++----------+-------------+------------+--------------+---------------------+---------------+-------------+-------------------------------------+
+| event_id | customer_id | event_date | service_time | event_type          | service_type  | guest_count | requirements                        |
++----------+-------------+------------+--------------+---------------------+---------------+-------------+-------------------------------------+
+|        1 |           1 | 2026-08-15 | 18:00:00     | Birthday Party      | Event         |          20 | Less spicy, no onions               |
+|        2 |           2 | 2026-08-22 | 20:00:00     | Wedding Anniversary | Event         |          30 | Candle-light dinner setup           |
+|        3 |           3 | 2026-09-05 | 13:00:00     | Corporate Lunch     | Event         |          50 | Live counters                       |
+|        4 |           4 | 2026-09-12 | 11:00:00     | House Warming       | Event         |          40 | Traditional leaf serving            |
+|        5 |           5 | 2026-09-20 | 17:00:00     | Birthday Party      | Event         |          15 | Kid-friendly menu                   |
+|        6 |           1 | 2026-10-10 | 12:30:00     | Family Gathering    | Event         |          25 | Jain options for 5 guests           |
+|        7 |           2 | 2026-10-15 | 20:30:00     | Dinner Party        | Event         |          12 | Wine pairing suggestions            |
+|        8 |           6 | 2026-10-18 | 19:00:00     | Corporate Dinner    | Event         |          60 | Projector for a short talk          |
+|        9 |           7 | 2026-10-20 | 19:00:00     | Engagement          | Event         |          80 | Multi-cuisine buffet                |
+|       10 |           5 | 2026-10-25 | 18:30:00     | Farewell Party      | Event         |          35 | Vegan options required              |
+|       11 |           2 | 2026-09-18 | 13:00:00     | Healthy Lunch       | Personal Chef |           2 | Low oil, high protein               |
+|       12 |           4 | 2026-09-26 | 19:30:00     | Home Dinner         | Personal Chef |           4 | Traditional Guntur-style meal       |
+|       13 |           5 | 2026-10-03 | 12:30:00     | Healthy Lunch       | Personal Chef |           2 | No processed food                   |
+|       14 |           7 | 2026-10-06 | 20:00:00     | Home Dinner         | Personal Chef |           3 | Mild spice, use ingredients at home |
+|       15 |           1 | 2026-10-08 | 08:30:00     | Healthy Breakfast   | Personal Chef |           2 | Chef to buy fresh vegetables        |
++----------+-------------+------------+--------------+---------------------+---------------+-------------+-------------------------------------+
+15 rows in set
+
+mysql> -- Q8. Display all bookings.
+mysql> SELECT * FROM bookings;
++------------+----------+---------+---------+----------------+-------------------+-----------------+
+| booking_id | event_id | chef_id | menu_id | booking_status | ingredient_source | ingredient_cost |
++------------+----------+---------+---------+----------------+-------------------+-----------------+
+|          1 |        1 |       1 |       1 | Completed      | Customer          |            0.00 |
+|          2 |        2 |       3 |       4 | Completed      | Customer          |            0.00 |
+|          3 |        3 |       3 |       5 | Completed      | Chef              |         6000.00 |
+|          4 |        4 |       2 |       3 | Completed      | Customer          |            0.00 |
+|          5 |        5 |       5 |       8 | Completed      | Customer          |            0.00 |
+|          6 |        6 |       1 |       2 | Confirmed      | Customer          |            0.00 |
+|          7 |        7 |       3 |       4 | Confirmed      | Customer          |            0.00 |
+|          8 |        8 |       3 |       5 | Pending        | Customer          |            0.00 |
+|          9 |        9 |       1 |       1 | Cancelled      | Customer          |            0.00 |
+|         10 |       10 |       5 |       8 | Confirmed      | Customer          |            0.00 |
+|         11 |       11 |       3 |      12 | Completed      | Customer          |            0.00 |
+|         12 |       12 |       2 |       3 | Completed      | Chef              |         1200.00 |
+|         13 |       13 |       5 |      13 | Confirmed      | Chef              |            0.00 |
+|         14 |       14 |       1 |      11 | Pending        | Customer          |            0.00 |
+|         15 |       15 |       1 |      11 | Confirmed      | Chef              |            0.00 |
++------------+----------+---------+---------+----------------+-------------------+-----------------+
+15 rows in set
+
+mysql> -- Q9. Display all payments.
+mysql> SELECT * FROM payments;
++------------+----------------+----------------+--------------+----------+---------------------+
+| booking_id | payment_method | payment_status | payment_type |   amount | payment_date        |
++------------+----------------+----------------+--------------+----------+---------------------+
+|          1 | UPI            | Success        | Service      |  6500.00 | 2026-08-01 10:00:00 |
+|          1 | Card           | Success        | Service      |  6500.00 | 2026-08-14 12:00:00 |
+|          2 | Card           | Success        | Service      | 16500.00 | 2026-08-10 11:00:00 |
+|          3 | Net Banking    | Success        | Service      | 12500.00 | 2026-08-25 09:30:00 |
+|          3 | Net Banking    | Success        | Service      | 12500.00 | 2026-09-04 09:30:00 |
+|          4 | UPI            | Failed         | Service      | 14000.00 | 2026-09-01 14:00:00 |
+|          4 | UPI            | Success        | Service      | 14000.00 | 2026-09-02 14:10:00 |
+|          5 | Card           | Success        | Service      | 12000.00 | 2026-09-10 16:00:00 |
+|          6 | UPI            | Success        | Service      |  5625.00 | 2026-09-25 10:00:00 |
+|          6 | Cash           | Pending        | Service      |  5625.00 | 2026-09-29 11:00:00 |
+|          7 | Card           | Success        | Service      |  6600.00 | 2026-09-27 13:00:00 |
+|          8 | Net Banking    | Pending        | Service      | 30000.00 | 2026-09-29 15:00:00 |
+|          9 | UPI            | Success        | Service      | 26000.00 | 2026-09-20 10:00:00 |
+|         10 | Card           | Success        | Service      | 14000.00 | 2026-09-28 17:00:00 |
+|          3 | Net Banking    | Success        | Ingredients  |  6000.00 | 2026-08-24 09:00:00 |
+|         11 | UPI            | Success        | Service      |   700.00 | 2026-09-17 10:00:00 |
+|         12 | UPI            | Success        | Service      |  1400.00 | 2026-09-25 10:00:00 |
+|         12 | UPI            | Success        | Ingredients  |  1200.00 | 2026-09-26 18:00:00 |
+|         13 | Card           | Success        | Service      |   500.00 | 2026-09-29 09:00:00 |
+|         14 | UPI            | Pending        | Service      |   900.00 | 2026-09-30 08:00:00 |
+|         15 | Cash           | Pending        | Service      |   600.00 | 2026-09-30 09:00:00 |
++------------+----------------+----------------+--------------+----------+---------------------+
+21 rows in set
+
+mysql> -- Q10. Display all reviews.
+mysql> SELECT * FROM reviews;
++------------+--------+
+| booking_id | rating |
++------------+--------+
+|          1 |      5 |
+|          2 |      4 |
+|          3 |      4 |
+|          4 |      5 |
+|          5 |      3 |
+|         11 |      5 |
+|         12 |      4 |
++------------+--------+
+7 rows in set
+
+mysql> -- Q11. Display all chef availability records.
+mysql> SELECT * FROM chef_availability;
++---------+-----------------+------------+----------+-------------+
+| chef_id | availability_dt | start_time | end_time | status      |
++---------+-----------------+------------+----------+-------------+
+|       1 | 2026-10-10      | 10:00:00   | 22:00:00 | Available   |
+|       1 | 2026-10-11      | 10:00:00   | 22:00:00 | Booked      |
+|       2 | 2026-10-12      | 09:00:00   | 21:00:00 | Available   |
+|       3 | 2026-10-15      | 11:00:00   | 23:00:00 | Available   |
+|       3 | 2026-10-16      | 11:00:00   | 23:00:00 | Booked      |
+|       4 | 2026-10-18      | 10:00:00   | 20:00:00 | Available   |
+|       4 | 2026-10-19      | 10:00:00   | 20:00:00 | Unavailable |
+|       5 | 2026-10-20      | 12:00:00   | 23:00:00 | Available   |
+|       5 | 2026-10-25      | 12:00:00   | 23:00:00 | Available   |
+|       6 | 2026-11-01      | 10:00:00   | 18:00:00 | Available   |
++---------+-----------------+------------+----------+-------------+
+10 rows in set
+
+mysql> -- Q12. Display all chef specialities.
+mysql> SELECT * FROM chef_specialities;
++---------+------------+--------------+
+| chef_id | cuisine_id | skill_level  |
++---------+------------+--------------+
+|       1 |          3 | Expert       |
+|       1 |          2 | Expert       |
+|       2 |          2 | Expert       |
+|       2 |          3 | Intermediate |
+|       3 |          1 | Expert       |
+|       3 |          4 | Intermediate |
+|       4 |          4 | Expert       |
+|       4 |          1 | Intermediate |
+|       5 |          5 | Expert       |
+|       5 |          6 | Expert       |
+|       6 |          6 | Beginner     |
+|       6 |          5 | Beginner     |
++---------+------------+--------------+
+12 rows in set
+
+mysql> -- Q13. Display chef names and experience years.
+mysql> SELECT chef_name, experience_years
+    -> FROM chefs;
++-----------------+------------------+
+| chef_name       | experience_years |
++-----------------+------------------+
+| Lakshmi Reddy   |                8 |
+| Ramesh Naidu    |                5 |
+| Harpreet Singh  |               10 |
+| Vikram Chowdary |                6 |
+| Marco Fernandes |               12 |
+| Tanvi Kulkarni  |                2 |
++-----------------+------------------+
+6 rows in set
+
+mysql> -- Q14. Display customer first names and phone numbers.
+mysql> SELECT first_name, phone
+    -> FROM customers;
++------------+------------+
+| first_name |      phone |
++------------+------------+
+| Ravi       | 9876500001 |
+| Sneha      | 9876500002 |
+| Arjun      | 9876500003 |
+| Priya      | 9876500004 |
+| Karthik    | 9876500005 |
+| Meena      | 9876500006 |
+| Suresh     | 9876500007 |
+| Divya      | 9876500008 |
++------------+------------+
+8 rows in set
+
+mysql> -- Q15. Display all verified chefs.
+mysql> SELECT chef_id, chef_name, experience_years
+    -> FROM chefs
+    -> WHERE verification_status = 'Verified';
++---------+-----------------+------------------+
+| chef_id | chef_name       | experience_years |
++---------+-----------------+------------------+
+|       1 | Lakshmi Reddy   |                8 |
+|       2 | Ramesh Naidu    |                5 |
+|       3 | Harpreet Singh  |               10 |
+|       4 | Vikram Chowdary |                6 |
+|       5 | Marco Fernandes |               12 |
++---------+-----------------+------------------+
+5 rows in set
+
+mysql> -- Q16. Display chefs having more than 8 years of experience.
+mysql> SELECT chef_name, experience_years
+    -> FROM chefs
+    -> WHERE experience_years > 8;
++-----------------+------------------+
+| chef_name       | experience_years |
++-----------------+------------------+
+| Harpreet Singh  |               10 |
+| Marco Fernandes |               12 |
++-----------------+------------------+
+2 rows in set
+
+mysql> -- Q17. Display menus whose price per person is above 600.
+mysql> SELECT menu_name, price_per_person
+    -> FROM menus
+    -> WHERE price_per_person > 600;
++---------------------+------------------+
+| menu_name           | price_per_person |
++---------------------+------------------+
+| Andhra Feast        |           650.00 |
+| Italian Pasta Night |           800.00 |
+| Continental Grill   |          1200.00 |
+| Vegan Wellness Menu |           700.00 |
++---------------------+------------------+
+4 rows in set
+
+mysql> -- Q18. Display all vegetarian menus.
+mysql> SELECT menu_name, price_per_person
+    -> FROM menus
+    -> WHERE diet_flag = 'Veg';
++-----------------------------+------------------+
+| menu_name                   | price_per_person |
++-----------------------------+------------------+
+| Royal Veg Thali             |           450.00 |
+| South Indian Tiffin Special |           350.00 |
+| North Indian Veg Deluxe     |           500.00 |
+| Indo-Chinese Delight        |           400.00 |
+| Italian Pasta Night         |           800.00 |
+| Homestyle Andhra Meal       |           300.00 |
+| Healthy Roti-Sabzi Meal     |           350.00 |
+| Light and Healthy Bowl      |           500.00 |
++-----------------------------+------------------+
+8 rows in set
+
+mysql> -- Q19. AND: display vegetarian menus priced below 500.
+mysql> SELECT menu_name, price_per_person, diet_flag
+    -> FROM menus
+    -> WHERE diet_flag = 'Veg' AND price_per_person < 500;
++-----------------------------+------------------+-----------+
+| menu_name                   | price_per_person | diet_flag |
++-----------------------------+------------------+-----------+
+| Royal Veg Thali             |           450.00 | Veg       |
+| South Indian Tiffin Special |           350.00 | Veg       |
+| Indo-Chinese Delight        |           400.00 | Veg       |
+| Homestyle Andhra Meal       |           300.00 | Veg       |
+| Healthy Roti-Sabzi Meal     |           350.00 | Veg       |
++-----------------------------+------------------+-----------+
+5 rows in set
+
+mysql> -- Q20. OR: display menus that are Vegan or priced above 1000.
+mysql> SELECT menu_name, price_per_person, diet_flag
+    -> FROM menus
+    -> WHERE diet_flag = 'Vegan' OR price_per_person > 1000;
++---------------------+------------------+-----------+
+| menu_name           | price_per_person | diet_flag |
++---------------------+------------------+-----------+
+| Continental Grill   |          1200.00 | Non-Veg   |
+| Vegan Wellness Menu |           700.00 | Vegan     |
++---------------------+------------------+-----------+
+2 rows in set
+
+mysql> -- Q21. BETWEEN: display menus priced between 400 and 700.
+mysql> SELECT menu_name, price_per_person
+    -> FROM menus
+    -> WHERE price_per_person BETWEEN 400 AND 700;
++-------------------------+------------------+
+| menu_name               | price_per_person |
++-------------------------+------------------+
+| Andhra Feast            |           650.00 |
+| Royal Veg Thali         |           450.00 |
+| Punjabi Dhaba Combo     |           550.00 |
+| North Indian Veg Deluxe |           500.00 |
+| Indo-Chinese Delight    |           400.00 |
+| Wok Non-Veg Special     |           600.00 |
+| Vegan Wellness Menu     |           700.00 |
+| Light and Healthy Bowl  |           500.00 |
++-------------------------+------------------+
+8 rows in set
+
+mysql> -- Q22. LIKE: display customers whose first name starts with 'S'.
+mysql> SELECT customer_id, first_name
+    -> FROM customers
+    -> WHERE first_name LIKE 'S%';
++-------------+------------+
+| customer_id | first_name |
++-------------+------------+
+|           2 | Sneha      |
+|           7 | Suresh     |
++-------------+------------+
+2 rows in set
+
+mysql> -- Q23. LIKE: display users having a gmail address.
+mysql> SELECT user_id, email, role
+    -> FROM users
+    -> WHERE email LIKE '%@gmail.com';
++---------+------------------------+----------+
+| user_id | email                  | role     |
++---------+------------------------+----------+
+|       2 | ravi.kumar@gmail.com   | customer |
+|       3 | sneha.reddy@gmail.com  | customer |
+|       4 | arjun.varma@gmail.com  | customer |
+|       5 | priya.sharma@gmail.com | customer |
+|       6 | karthik.nair@gmail.com | customer |
+|       7 | meena.iyer@gmail.com   | customer |
+|       8 | suresh.babu@gmail.com  | customer |
+|       9 | divya.rao@gmail.com    | customer |
++---------+------------------------+----------+
+8 rows in set
+
+mysql> -- Q24. IN: display bookings that are Completed or Confirmed.
+mysql> SELECT booking_id, chef_id, booking_status
+    -> FROM bookings
+    -> WHERE booking_status IN ('Completed', 'Confirmed');
++------------+---------+----------------+
+| booking_id | chef_id | booking_status |
++------------+---------+----------------+
+|          1 |       1 | Completed      |
+|          2 |       3 | Completed      |
+|          3 |       3 | Completed      |
+|          4 |       2 | Completed      |
+|          5 |       5 | Completed      |
+|          6 |       1 | Confirmed      |
+|          7 |       3 | Confirmed      |
+|         10 |       5 | Confirmed      |
+|         11 |       3 | Completed      |
+|         12 |       2 | Completed      |
+|         13 |       5 | Confirmed      |
+|         15 |       1 | Confirmed      |
++------------+---------+----------------+
+12 rows in set
+
+mysql> -- Q25. Display all birthday party events.
+mysql> SELECT event_id, customer_id, event_date, guest_count
+    -> FROM events
+    -> WHERE event_type = 'Birthday Party';
++----------+-------------+------------+-------------+
+| event_id | customer_id | event_date | guest_count |
++----------+-------------+------------+-------------+
+|        1 |           1 | 2026-08-15 |          20 |
+|        5 |           5 | 2026-09-20 |          15 |
++----------+-------------+------------+-------------+
+2 rows in set
+
+mysql> -- Q26. NOT IN: display bookings that are neither Pending nor Cancelled.
+mysql> SELECT booking_id, chef_id, booking_status
+    -> FROM bookings
+    -> WHERE booking_status NOT IN ('Pending', 'Cancelled');
++------------+---------+----------------+
+| booking_id | chef_id | booking_status |
++------------+---------+----------------+
+|          1 |       1 | Completed      |
+|          2 |       3 | Completed      |
+|          3 |       3 | Completed      |
+|          4 |       2 | Completed      |
+|          5 |       5 | Completed      |
+|          6 |       1 | Confirmed      |
+|          7 |       3 | Confirmed      |
+|         10 |       5 | Confirmed      |
+|         11 |       3 | Completed      |
+|         12 |       2 | Completed      |
+|         13 |       5 | Confirmed      |
+|         15 |       1 | Confirmed      |
++------------+---------+----------------+
+12 rows in set
+
+mysql> -- Q27. IN: display failed or pending payments.
+mysql> SELECT booking_id, payment_date, payment_status, amount
+    -> FROM payments
+    -> WHERE payment_status IN ('Failed', 'Pending');
++------------+---------------------+----------------+----------+
+| booking_id | payment_date        | payment_status |   amount |
++------------+---------------------+----------------+----------+
+|          4 | 2026-09-01 14:00:00 | Failed         | 14000.00 |
+|          6 | 2026-09-29 11:00:00 | Pending        |  5625.00 |
+|          8 | 2026-09-29 15:00:00 | Pending        | 30000.00 |
+|         14 | 2026-09-30 08:00:00 | Pending        |   900.00 |
+|         15 | 2026-09-30 09:00:00 | Pending        |   600.00 |
++------------+---------------------+----------------+----------+
+5 rows in set
+
+mysql> -- Q28. Display menus from the highest to the lowest price.
+mysql> SELECT menu_name, price_per_person
+    -> FROM menus
+    -> ORDER BY price_per_person DESC, menu_name;
++-----------------------------+------------------+
+| menu_name                   | price_per_person |
++-----------------------------+------------------+
+| Continental Grill           |          1200.00 |
+| Italian Pasta Night         |           800.00 |
+| Vegan Wellness Menu         |           700.00 |
+| Andhra Feast                |           650.00 |
+| Wok Non-Veg Special         |           600.00 |
+| Punjabi Dhaba Combo         |           550.00 |
+| Light and Healthy Bowl      |           500.00 |
+| North Indian Veg Deluxe     |           500.00 |
+| Royal Veg Thali             |           450.00 |
+| Indo-Chinese Delight        |           400.00 |
+| Healthy Roti-Sabzi Meal     |           350.00 |
+| South Indian Tiffin Special |           350.00 |
+| Homestyle Andhra Meal       |           300.00 |
++-----------------------------+------------------+
+13 rows in set
+
+mysql> -- Q29. Display the 3 most experienced chefs.
+mysql> SELECT chef_name, experience_years
+    -> FROM chefs
+    -> ORDER BY experience_years DESC
+    -> LIMIT 3;
++-----------------+------------------+
+| chef_name       | experience_years |
++-----------------+------------------+
+| Marco Fernandes |               12 |
+| Harpreet Singh  |               10 |
+| Lakshmi Reddy   |                8 |
++-----------------+------------------+
+3 rows in set
+
+mysql> -- Q30. Display events in date order (earliest first).
+mysql> SELECT event_id, event_type, event_date
+    -> FROM events
+    -> ORDER BY event_date ASC;
++----------+---------------------+------------+
+| event_id | event_type          | event_date |
++----------+---------------------+------------+
+|        1 | Birthday Party      | 2026-08-15 |
+|        2 | Wedding Anniversary | 2026-08-22 |
+|        3 | Corporate Lunch     | 2026-09-05 |
+|        4 | House Warming       | 2026-09-12 |
+|       11 | Healthy Lunch       | 2026-09-18 |
+|        5 | Birthday Party      | 2026-09-20 |
+|       12 | Home Dinner         | 2026-09-26 |
+|       13 | Healthy Lunch       | 2026-10-03 |
+|       14 | Home Dinner         | 2026-10-06 |
+|       15 | Healthy Breakfast   | 2026-10-08 |
+|        6 | Family Gathering    | 2026-10-10 |
+|        7 | Dinner Party        | 2026-10-15 |
+|        8 | Corporate Dinner    | 2026-10-18 |
+|        9 | Engagement          | 2026-10-20 |
+|       10 | Farewell Party      | 2026-10-25 |
++----------+---------------------+------------+
+15 rows in set
+
+mysql> -- Q31. Display the different event types (no repeats).
+mysql> SELECT DISTINCT event_type
+    -> FROM events
+    -> ORDER BY event_type;
++---------------------+
+| event_type          |
++---------------------+
+| Birthday Party      |
+| Corporate Dinner    |
+| Corporate Lunch     |
+| Dinner Party        |
+| Engagement          |
+| Family Gathering    |
+| Farewell Party      |
+| Healthy Breakfast   |
+| Healthy Lunch       |
+| Home Dinner         |
+| House Warming       |
+| Wedding Anniversary |
++---------------------+
+12 rows in set
+
+mysql> -- Q32. Create a practice copy of the menus table.
+mysql> DROP TABLE IF EXISTS practice_menus;
+Query OK, 0 rows affected
+
+mysql> CREATE TABLE practice_menus AS SELECT * FROM menus;
+Query OK, 13 rows affected
+
+mysql> SELECT * FROM practice_menus;
++---------+---------+-----------------------------+------------------+-----------+
+| menu_id | chef_id | menu_name                   | price_per_person | diet_flag |
++---------+---------+-----------------------------+------------------+-----------+
+|       1 |       1 | Andhra Feast                |           650.00 | Non-Veg   |
+|       2 |       1 | Royal Veg Thali             |           450.00 | Veg       |
+|       3 |       2 | South Indian Tiffin Special |           350.00 | Veg       |
+|       4 |       3 | Punjabi Dhaba Combo         |           550.00 | Non-Veg   |
+|       5 |       3 | North Indian Veg Deluxe     |           500.00 | Veg       |
+|       6 |       4 | Indo-Chinese Delight        |           400.00 | Veg       |
+|       7 |       4 | Wok Non-Veg Special         |           600.00 | Non-Veg   |
+|       8 |       5 | Italian Pasta Night         |           800.00 | Veg       |
+|       9 |       5 | Continental Grill           |          1200.00 | Non-Veg   |
+|      10 |       6 | Vegan Wellness Menu         |           700.00 | Vegan     |
+|      11 |       1 | Homestyle Andhra Meal       |           300.00 | Veg       |
+|      12 |       3 | Healthy Roti-Sabzi Meal     |           350.00 | Veg       |
+|      13 |       5 | Light and Healthy Bowl      |           500.00 | Veg       |
++---------+---------+-----------------------------+------------------+-----------+
+13 rows in set
+
+mysql> -- Q33. INSERT: add a new menu to the practice table.
+mysql> INSERT INTO practice_menus (menu_id, chef_id, menu_name, price_per_person, diet_flag)
+    -> VALUES (14, 6, 'Vegan Protein Bowl', 650.00, 'Vegan');
+Query OK, 1 row affected
+
+mysql> SELECT * FROM practice_menus WHERE menu_id = 14;
++---------+---------+--------------------+------------------+-----------+
+| menu_id | chef_id | menu_name          | price_per_person | diet_flag |
++---------+---------+--------------------+------------------+-----------+
+|      14 |       6 | Vegan Protein Bowl |           650.00 | Vegan     |
++---------+---------+--------------------+------------------+-----------+
+1 row in set
+
+mysql> -- Q34. UPDATE one row: change the price of menu 14 to 750.
+mysql> UPDATE practice_menus
+    -> SET price_per_person = 750.00
+    -> WHERE menu_id = 14;
+Query OK, 1 row affected
+
+mysql> SELECT menu_name, price_per_person FROM practice_menus WHERE menu_id = 14;
++--------------------+------------------+
+| menu_name          | price_per_person |
++--------------------+------------------+
+| Vegan Protein Bowl |           750.00 |
++--------------------+------------------+
+1 row in set
+
+mysql> -- Q35. UPDATE many rows: raise the price of vegetarian menus below 500 by 10%.
+mysql> UPDATE practice_menus
+    -> SET price_per_person = price_per_person * 1.10
+    -> WHERE diet_flag = 'Veg' AND price_per_person < 500;
+Query OK, 5 rows affected
+
+mysql> SELECT menu_id, menu_name, price_per_person
+    -> FROM practice_menus
+    -> WHERE diet_flag = 'Veg'
+    -> ORDER BY menu_id;
++---------+-----------------------------+------------------+
+| menu_id | menu_name                   | price_per_person |
++---------+-----------------------------+------------------+
+|       2 | Royal Veg Thali             |           495.00 |
+|       3 | South Indian Tiffin Special |           385.00 |
+|       5 | North Indian Veg Deluxe     |           500.00 |
+|       6 | Indo-Chinese Delight        |           440.00 |
+|       8 | Italian Pasta Night         |           800.00 |
+|      11 | Homestyle Andhra Meal       |           330.00 |
+|      12 | Healthy Roti-Sabzi Meal     |           385.00 |
+|      13 | Light and Healthy Bowl      |           500.00 |
++---------+-----------------------------+------------------+
+8 rows in set
+
+mysql> -- Q36. DELETE: remove the menu added in Q33.
+mysql> DELETE FROM practice_menus
+    -> WHERE menu_id = 14;
+Query OK, 1 row affected
+
+mysql> SELECT menu_id, menu_name FROM practice_menus WHERE menu_id = 14;
+Empty set
+
+mysql> -- Q37. ALTER TABLE: add a new column.
+mysql> ALTER TABLE practice_menus ADD COLUMN is_special VARCHAR(3) DEFAULT 'No';
+Query OK, 0 rows affected
+
+mysql> SELECT menu_id, menu_name, is_special FROM practice_menus ORDER BY menu_id LIMIT 3;
++---------+-----------------------------+------------+
+| menu_id | menu_name                   | is_special |
++---------+-----------------------------+------------+
+|       1 | Andhra Feast                | No         |
+|       2 | Royal Veg Thali             | No         |
+|       3 | South Indian Tiffin Special | No         |
++---------+-----------------------------+------------+
+3 rows in set
+
+mysql> -- Q38. RENAME COLUMN: rename price_per_person to price.
+mysql> ALTER TABLE practice_menus RENAME COLUMN price_per_person TO price;
+Query OK, 0 rows affected
+
+mysql> SELECT menu_id, menu_name, price FROM practice_menus ORDER BY menu_id LIMIT 3;
++---------+-----------------------------+--------+
+| menu_id | menu_name                   |  price |
++---------+-----------------------------+--------+
+|       1 | Andhra Feast                | 650.00 |
+|       2 | Royal Veg Thali             | 495.00 |
+|       3 | South Indian Tiffin Special | 385.00 |
++---------+-----------------------------+--------+
+3 rows in set
+
+mysql> -- Q39. RENAME TABLE: rename practice_menus to practice_menu_list.
+mysql> RENAME TABLE practice_menus TO practice_menu_list;
+Query OK, 0 rows affected
+
+mysql> SHOW TABLES;
++--------------------------+
+| Tables_in_chefconnect_db |
++--------------------------+
+| booking_financials       |
+| bookings                 |
+| chef_availability        |
+| chef_avg_rating          |
+| chef_specialities        |
+| chefs                    |
+| cuisines                 |
+| customers                |
+| events                   |
+| locations                |
+| menus                    |
+| payments                 |
+| practice_menu_list       |
+| reviews                  |
+| users                    |
++--------------------------+
+15 rows in set
+
+mysql> -- Q40. DROP TABLE: delete the practice table.
+mysql> DROP TABLE practice_menu_list;
+Query OK, 0 rows affected
+
+mysql> SHOW TABLES;
++--------------------------+
+| Tables_in_chefconnect_db |
++--------------------------+
+| booking_financials       |
+| bookings                 |
+| chef_availability        |
+| chef_avg_rating          |
+| chef_specialities        |
+| chefs                    |
+| cuisines                 |
+| customers                |
+| events                   |
+| locations                |
+| menus                    |
+| payments                 |
+| reviews                  |
+| users                    |
++--------------------------+
+14 rows in set
+
+mysql> -- Q41. Count the total number of customers.
+mysql> SELECT COUNT(*) AS total_customers
+    -> FROM customers;
++-----------------+
+| total_customers |
++-----------------+
+|               8 |
++-----------------+
+1 row in set
+
+mysql> -- Q42. Count the total number of bookings.
+mysql> SELECT COUNT(*) AS total_bookings
+    -> FROM bookings;
++----------------+
+| total_bookings |
++----------------+
+|             15 |
++----------------+
+1 row in set
+
+mysql> -- Q43. Find the total revenue from successful payments.
+mysql> SELECT SUM(amount) AS total_revenue
+    -> FROM payments
+    -> WHERE payment_status = 'Success' AND payment_type = 'Service';
++---------------+
+| total_revenue |
++---------------+
+|     135325.00 |
++---------------+
+1 row in set
+
+mysql> -- Q44. Find the average menu price per person.
+mysql> SELECT ROUND(AVG(price_per_person), 2) AS avg_menu_price
+    -> FROM menus;
++----------------+
+| avg_menu_price |
++----------------+
+|         565.38 |
++----------------+
+1 row in set
+
+mysql> -- Q45. Find the highest and lowest menu prices.
+mysql> SELECT MAX(price_per_person) AS highest_price,
+    ->        MIN(price_per_person) AS lowest_price
+    -> FROM menus;
++---------------+--------------+
+| highest_price | lowest_price |
++---------------+--------------+
+|       1200.00 |       300.00 |
++---------------+--------------+
+1 row in set
+
+mysql> -- Q46. Find the average review rating.
+mysql> SELECT ROUND(AVG(rating), 2) AS avg_rating
+    -> FROM reviews;
++------------+
+| avg_rating |
++------------+
+|       4.29 |
++------------+
+1 row in set
+
+mysql> -- Q47. Display customer names with their area and city.
+mysql> SELECT c.first_name, l.area, l.city
+    -> FROM customers c
+    -> JOIN locations l ON c.location_id = l.location_id
+    -> ORDER BY c.customer_id;
++------------+---------------+---------------+
+| first_name | area          | city          |
++------------+---------------+---------------+
+| Ravi       | Benz Circle   | Vijayawada    |
+| Sneha      | Banjara Hills | Hyderabad     |
+| Arjun      | MVP Colony    | Visakhapatnam |
+| Priya      | Brodipet      | Guntur        |
+| Karthik    | Indiranagar   | Bengaluru     |
+| Meena      | Banjara Hills | Hyderabad     |
+| Suresh     | Benz Circle   | Vijayawada    |
+| Divya      | MVP Colony    | Visakhapatnam |
++------------+---------------+---------------+
+8 rows in set
+
+mysql> -- Q48. Display chef names with their city and verification status.
+mysql> SELECT ch.chef_name, l.city, ch.verification_status
+    -> FROM chefs ch
+    -> JOIN locations l ON ch.location_id = l.location_id
+    -> ORDER BY ch.chef_id;
++-----------------+---------------+---------------------+
+| chef_name       | city          | verification_status |
++-----------------+---------------+---------------------+
+| Lakshmi Reddy   | Vijayawada    | Verified            |
+| Ramesh Naidu    | Guntur        | Verified            |
+| Harpreet Singh  | Hyderabad     | Verified            |
+| Vikram Chowdary | Visakhapatnam | Verified            |
+| Marco Fernandes | Bengaluru     | Verified            |
+| Tanvi Kulkarni  | Hyderabad     | Pending             |
++-----------------+---------------+---------------------+
+6 rows in set
+
+mysql> -- Q49. Display chef names with the cuisines they specialise in.
+mysql> SELECT ch.chef_name, cu.cuisine_name, cs.skill_level
+    -> FROM chef_specialities cs
+    -> JOIN chefs ch ON cs.chef_id = ch.chef_id
+    -> JOIN cuisines cu ON cs.cuisine_id = cu.cuisine_id
+    -> ORDER BY ch.chef_name, cu.cuisine_name;
++-----------------+--------------+--------------+
+| chef_name       | cuisine_name | skill_level  |
++-----------------+--------------+--------------+
+| Harpreet Singh  | Chinese      | Intermediate |
+| Harpreet Singh  | North Indian | Expert       |
+| Lakshmi Reddy   | Andhra       | Expert       |
+| Lakshmi Reddy   | South Indian | Expert       |
+| Marco Fernandes | Continental  | Expert       |
+| Marco Fernandes | Italian      | Expert       |
+| Ramesh Naidu    | Andhra       | Intermediate |
+| Ramesh Naidu    | South Indian | Expert       |
+| Tanvi Kulkarni  | Continental  | Beginner     |
+| Tanvi Kulkarni  | Italian      | Beginner     |
+| Vikram Chowdary | Chinese      | Expert       |
+| Vikram Chowdary | North Indian | Intermediate |
++-----------------+--------------+--------------+
+12 rows in set
+
+mysql> -- Q50. Display menus with the chef who offers them.
+mysql> SELECT m.menu_name, m.price_per_person, ch.chef_name
+    -> FROM menus m
+    -> JOIN chefs ch ON m.chef_id = ch.chef_id
+    -> ORDER BY m.menu_id;
++-----------------------------+------------------+-----------------+
+| menu_name                   | price_per_person | chef_name       |
++-----------------------------+------------------+-----------------+
+| Andhra Feast                |           650.00 | Lakshmi Reddy   |
+| Royal Veg Thali             |           450.00 | Lakshmi Reddy   |
+| South Indian Tiffin Special |           350.00 | Ramesh Naidu    |
+| Punjabi Dhaba Combo         |           550.00 | Harpreet Singh  |
+| North Indian Veg Deluxe     |           500.00 | Harpreet Singh  |
+| Indo-Chinese Delight        |           400.00 | Vikram Chowdary |
+| Wok Non-Veg Special         |           600.00 | Vikram Chowdary |
+| Italian Pasta Night         |           800.00 | Marco Fernandes |
+| Continental Grill           |          1200.00 | Marco Fernandes |
+| Vegan Wellness Menu         |           700.00 | Tanvi Kulkarni  |
+| Homestyle Andhra Meal       |           300.00 | Lakshmi Reddy   |
+| Healthy Roti-Sabzi Meal     |           350.00 | Harpreet Singh  |
+| Light and Healthy Bowl      |           500.00 | Marco Fernandes |
++-----------------------------+------------------+-----------------+
+13 rows in set
+
+mysql> -- Q51. Display bookings with event type, chef name and menu name.
+mysql> SELECT b.booking_id, e.event_type, ch.chef_name, m.menu_name, b.booking_status
+    -> FROM bookings b
+    -> JOIN events e ON b.event_id = e.event_id
+    -> JOIN chefs ch ON b.chef_id = ch.chef_id
+    -> JOIN menus m ON b.menu_id = m.menu_id
+    -> ORDER BY b.booking_id;
++------------+---------------------+-----------------+-----------------------------+----------------+
+| booking_id | event_type          | chef_name       | menu_name                   | booking_status |
++------------+---------------------+-----------------+-----------------------------+----------------+
+|          1 | Birthday Party      | Lakshmi Reddy   | Andhra Feast                | Completed      |
+|          2 | Wedding Anniversary | Harpreet Singh  | Punjabi Dhaba Combo         | Completed      |
+|          3 | Corporate Lunch     | Harpreet Singh  | North Indian Veg Deluxe     | Completed      |
+|          4 | House Warming       | Ramesh Naidu    | South Indian Tiffin Special | Completed      |
+|          5 | Birthday Party      | Marco Fernandes | Italian Pasta Night         | Completed      |
+|          6 | Family Gathering    | Lakshmi Reddy   | Royal Veg Thali             | Confirmed      |
+|          7 | Dinner Party        | Harpreet Singh  | Punjabi Dhaba Combo         | Confirmed      |
+|          8 | Corporate Dinner    | Harpreet Singh  | North Indian Veg Deluxe     | Pending        |
+|          9 | Engagement          | Lakshmi Reddy   | Andhra Feast                | Cancelled      |
+|         10 | Farewell Party      | Marco Fernandes | Italian Pasta Night         | Confirmed      |
+|         11 | Healthy Lunch       | Harpreet Singh  | Healthy Roti-Sabzi Meal     | Completed      |
+|         12 | Home Dinner         | Ramesh Naidu    | South Indian Tiffin Special | Completed      |
+|         13 | Healthy Lunch       | Marco Fernandes | Light and Healthy Bowl      | Confirmed      |
+|         14 | Home Dinner         | Lakshmi Reddy   | Homestyle Andhra Meal       | Pending        |
+|         15 | Healthy Breakfast   | Lakshmi Reddy   | Homestyle Andhra Meal       | Confirmed      |
++------------+---------------------+-----------------+-----------------------------+----------------+
+15 rows in set
+
+mysql> -- Q52. Display payments with the customer who made them.
+mysql> SELECT p.booking_id, p.payment_date, c.first_name, p.payment_method, p.amount, p.payment_status
+    -> FROM payments p
+    -> JOIN bookings b ON p.booking_id = b.booking_id
+    -> JOIN events e ON b.event_id = e.event_id
+    -> JOIN customers c ON e.customer_id = c.customer_id
+    -> ORDER BY p.booking_id, p.payment_date;
++------------+---------------------+------------+----------------+----------+----------------+
+| booking_id | payment_date        | first_name | payment_method |   amount | payment_status |
++------------+---------------------+------------+----------------+----------+----------------+
+|          1 | 2026-08-01 10:00:00 | Ravi       | UPI            |  6500.00 | Success        |
+|          1 | 2026-08-14 12:00:00 | Ravi       | Card           |  6500.00 | Success        |
+|          2 | 2026-08-10 11:00:00 | Sneha      | Card           | 16500.00 | Success        |
+|          3 | 2026-08-24 09:00:00 | Arjun      | Net Banking    |  6000.00 | Success        |
+|          3 | 2026-08-25 09:30:00 | Arjun      | Net Banking    | 12500.00 | Success        |
+|          3 | 2026-09-04 09:30:00 | Arjun      | Net Banking    | 12500.00 | Success        |
+|          4 | 2026-09-01 14:00:00 | Priya      | UPI            | 14000.00 | Failed         |
+|          4 | 2026-09-02 14:10:00 | Priya      | UPI            | 14000.00 | Success        |
+|          5 | 2026-09-10 16:00:00 | Karthik    | Card           | 12000.00 | Success        |
+|          6 | 2026-09-25 10:00:00 | Ravi       | UPI            |  5625.00 | Success        |
+|          6 | 2026-09-29 11:00:00 | Ravi       | Cash           |  5625.00 | Pending        |
+|          7 | 2026-09-27 13:00:00 | Sneha      | Card           |  6600.00 | Success        |
+|          8 | 2026-09-29 15:00:00 | Meena      | Net Banking    | 30000.00 | Pending        |
+|          9 | 2026-09-20 10:00:00 | Suresh     | UPI            | 26000.00 | Success        |
+|         10 | 2026-09-28 17:00:00 | Karthik    | Card           | 14000.00 | Success        |
+|         11 | 2026-09-17 10:00:00 | Sneha      | UPI            |   700.00 | Success        |
+|         12 | 2026-09-25 10:00:00 | Priya      | UPI            |  1400.00 | Success        |
+|         12 | 2026-09-26 18:00:00 | Priya      | UPI            |  1200.00 | Success        |
+|         13 | 2026-09-29 09:00:00 | Karthik    | Card           |   500.00 | Success        |
+|         14 | 2026-09-30 08:00:00 | Suresh     | UPI            |   900.00 | Pending        |
+|         15 | 2026-09-30 09:00:00 | Ravi       | Cash           |   600.00 | Pending        |
++------------+---------------------+------------+----------------+----------+----------------+
+21 rows in set
+
+mysql> -- Q53. Display reviews with the chef who received them.
+mysql> SELECT r.booking_id, ch.chef_name, r.rating
+    -> FROM reviews r
+    -> JOIN bookings b ON r.booking_id = b.booking_id
+    -> JOIN chefs ch ON b.chef_id = ch.chef_id
+    -> ORDER BY r.booking_id;
++------------+-----------------+--------+
+| booking_id | chef_name       | rating |
++------------+-----------------+--------+
+|          1 | Lakshmi Reddy   |      5 |
+|          2 | Harpreet Singh  |      4 |
+|          3 | Harpreet Singh  |      4 |
+|          4 | Ramesh Naidu    |      5 |
+|          5 | Marco Fernandes |      3 |
+|         11 | Harpreet Singh  |      5 |
+|         12 | Ramesh Naidu    |      4 |
++------------+-----------------+--------+
+7 rows in set
+
+mysql> -- Q54. LEFT JOIN: find customers who have not planned any event.
+mysql> SELECT c.customer_id, c.first_name
+    -> FROM customers c
+    -> LEFT JOIN events e ON c.customer_id = e.customer_id
+    -> WHERE e.event_id IS NULL;
++-------------+------------+
+| customer_id | first_name |
++-------------+------------+
+|           8 | Divya      |
++-------------+------------+
+1 row in set
+
+mysql> -- Q55. LEFT JOIN: find chefs who have no bookings.
+mysql> SELECT ch.chef_id, ch.chef_name
+    -> FROM chefs ch
+    -> LEFT JOIN bookings b ON ch.chef_id = b.chef_id
+    -> WHERE b.booking_id IS NULL;
++---------+-----------------+
+| chef_id | chef_name       |
++---------+-----------------+
+|       4 | Vikram Chowdary |
+|       6 | Tanvi Kulkarni  |
++---------+-----------------+
+2 rows in set
+
+mysql> -- Q56. RIGHT JOIN: find bookings that have no review.
+mysql> SELECT b.booking_id, b.booking_status
+    -> FROM reviews r
+    -> RIGHT JOIN bookings b ON r.booking_id = b.booking_id
+    -> WHERE r.booking_id IS NULL
+    -> ORDER BY b.booking_id;
++------------+----------------+
+| booking_id | booking_status |
++------------+----------------+
+|          6 | Confirmed      |
+|          7 | Confirmed      |
+|          8 | Pending        |
+|          9 | Cancelled      |
+|         10 | Confirmed      |
+|         13 | Confirmed      |
+|         14 | Pending        |
+|         15 | Confirmed      |
++------------+----------------+
+8 rows in set
+
+mysql> -- Q57. SELF JOIN: find pairs of chefs who work in the same city.
+mysql> SELECT a.chef_name AS chef_1, b.chef_name AS chef_2, l.city
+    -> FROM chefs a
+    -> JOIN chefs b ON a.location_id = b.location_id AND a.chef_id < b.chef_id
+    -> JOIN locations l ON a.location_id = l.location_id;
++----------------+----------------+-----------+
+| chef_1         | chef_2         | city      |
++----------------+----------------+-----------+
+| Harpreet Singh | Tanvi Kulkarni | Hyderabad |
++----------------+----------------+-----------+
+1 row in set
+
+mysql> -- Q58. CROSS JOIN: pair every chef with every cuisine (all combinations).
+mysql> SELECT ch.chef_name, cu.cuisine_name
+    -> FROM chefs ch
+    -> CROSS JOIN cuisines cu
+    -> ORDER BY ch.chef_id, cu.cuisine_id;
++-----------------+--------------+
+| chef_name       | cuisine_name |
++-----------------+--------------+
+| Lakshmi Reddy   | North Indian |
+| Lakshmi Reddy   | South Indian |
+| Lakshmi Reddy   | Andhra       |
+| Lakshmi Reddy   | Chinese      |
+| Lakshmi Reddy   | Italian      |
+| Lakshmi Reddy   | Continental  |
+| Ramesh Naidu    | North Indian |
+| Ramesh Naidu    | South Indian |
+| Ramesh Naidu    | Andhra       |
+| Ramesh Naidu    | Chinese      |
+| Ramesh Naidu    | Italian      |
+| Ramesh Naidu    | Continental  |
+| Harpreet Singh  | North Indian |
+| Harpreet Singh  | South Indian |
+| Harpreet Singh  | Andhra       |
+| Harpreet Singh  | Chinese      |
+| Harpreet Singh  | Italian      |
+| Harpreet Singh  | Continental  |
+| Vikram Chowdary | North Indian |
+| Vikram Chowdary | South Indian |
+| Vikram Chowdary | Andhra       |
+| Vikram Chowdary | Chinese      |
+| Vikram Chowdary | Italian      |
+| Vikram Chowdary | Continental  |
+| Marco Fernandes | North Indian |
+| Marco Fernandes | South Indian |
+| Marco Fernandes | Andhra       |
+| Marco Fernandes | Chinese      |
+| Marco Fernandes | Italian      |
+| Marco Fernandes | Continental  |
+| Tanvi Kulkarni  | North Indian |
+| Tanvi Kulkarni  | South Indian |
+| Tanvi Kulkarni  | Andhra       |
+| Tanvi Kulkarni  | Chinese      |
+| Tanvi Kulkarni  | Italian      |
+| Tanvi Kulkarni  | Continental  |
++-----------------+--------------+
+36 rows in set
+
+mysql> -- Q59. Count customers in each city.
+mysql> SELECT l.city, COUNT(*) AS total_customers
+    -> FROM customers c
+    -> JOIN locations l ON c.location_id = l.location_id
+    -> GROUP BY l.city
+    -> ORDER BY l.city;
++---------------+-----------------+
+| city          | total_customers |
++---------------+-----------------+
+| Bengaluru     |               1 |
+| Guntur        |               1 |
+| Hyderabad     |               2 |
+| Vijayawada    |               2 |
+| Visakhapatnam |               2 |
++---------------+-----------------+
+5 rows in set
+
+mysql> -- Q60. Count menus offered by each chef.
+mysql> SELECT ch.chef_name, COUNT(m.menu_id) AS total_menus
+    -> FROM chefs ch
+    -> LEFT JOIN menus m ON ch.chef_id = m.chef_id
+    -> GROUP BY ch.chef_id, ch.chef_name
+    -> ORDER BY ch.chef_id;
++-----------------+-------------+
+| chef_name       | total_menus |
++-----------------+-------------+
+| Lakshmi Reddy   |           3 |
+| Ramesh Naidu    |           1 |
+| Harpreet Singh  |           3 |
+| Vikram Chowdary |           2 |
+| Marco Fernandes |           3 |
+| Tanvi Kulkarni  |           1 |
++-----------------+-------------+
+6 rows in set
+
+mysql> -- Q61. Count payments for each payment method.
+mysql> SELECT payment_method, COUNT(*) AS total_payments
+    -> FROM payments
+    -> GROUP BY payment_method
+    -> ORDER BY total_payments DESC, payment_method;
++----------------+----------------+
+| payment_method | total_payments |
++----------------+----------------+
+| UPI            |              9 |
+| Card           |              6 |
+| Net Banking    |              4 |
+| Cash           |              2 |
++----------------+----------------+
+4 rows in set
+
+mysql> -- Q62. Find the revenue collected by each payment method (successful only).
+mysql> SELECT payment_method, SUM(amount) AS revenue
+    -> FROM payments
+    -> WHERE payment_status = 'Success' AND payment_type = 'Service'
+    -> GROUP BY payment_method
+    -> ORDER BY revenue DESC;
++----------------+----------+
+| payment_method |  revenue |
++----------------+----------+
+| Card           | 56100.00 |
+| UPI            | 54225.00 |
+| Net Banking    | 25000.00 |
++----------------+----------+
+3 rows in set
+
+mysql> -- Q63. Find the average rating received by each chef.
+mysql> SELECT ch.chef_name, ROUND(AVG(r.rating), 2) AS avg_rating
+    -> FROM reviews r
+    -> JOIN bookings b ON r.booking_id = b.booking_id
+    -> JOIN chefs ch ON b.chef_id = ch.chef_id
+    -> GROUP BY ch.chef_id, ch.chef_name
+    -> ORDER BY ch.chef_id;
++-----------------+------------+
+| chef_name       | avg_rating |
++-----------------+------------+
+| Lakshmi Reddy   |       5.00 |
+| Ramesh Naidu    |       4.50 |
+| Harpreet Singh  |       4.33 |
+| Marco Fernandes |       3.00 |
++-----------------+------------+
+4 rows in set
+
+mysql> -- Q64. Find the total guests served for each event type.
+mysql> SELECT event_type, SUM(guest_count) AS total_guests
+    -> FROM events
+    -> GROUP BY event_type
+    -> ORDER BY total_guests DESC, event_type;
++---------------------+--------------+
+| event_type          | total_guests |
++---------------------+--------------+
+| Engagement          |           80 |
+| Corporate Dinner    |           60 |
+| Corporate Lunch     |           50 |
+| House Warming       |           40 |
+| Birthday Party      |           35 |
+| Farewell Party      |           35 |
+| Wedding Anniversary |           30 |
+| Family Gathering    |           25 |
+| Dinner Party        |           12 |
+| Home Dinner         |            7 |
+| Healthy Lunch       |            4 |
+| Healthy Breakfast   |            2 |
++---------------------+--------------+
+12 rows in set
+
+mysql> -- Q65. HAVING: find chefs having more than one booking.
+mysql> SELECT ch.chef_name, COUNT(b.booking_id) AS total_bookings
+    -> FROM chefs ch
+    -> JOIN bookings b ON ch.chef_id = b.chef_id
+    -> GROUP BY ch.chef_id, ch.chef_name
+    -> HAVING COUNT(b.booking_id) > 1
+    -> ORDER BY total_bookings DESC, ch.chef_name;
++-----------------+----------------+
+| chef_name       | total_bookings |
++-----------------+----------------+
+| Harpreet Singh  |              5 |
+| Lakshmi Reddy   |              5 |
+| Marco Fernandes |              3 |
+| Ramesh Naidu    |              2 |
++-----------------+----------------+
+4 rows in set
+
+mysql> -- Q66. HAVING: find customers whose total successful payments exceed 20000.
+mysql> SELECT c.first_name, SUM(p.amount) AS total_paid
+    -> FROM customers c
+    -> JOIN events e ON c.customer_id = e.customer_id
+    -> JOIN bookings b ON e.event_id = b.event_id
+    -> JOIN payments p ON b.booking_id = p.booking_id
+    -> WHERE p.payment_status = 'Success' AND p.payment_type = 'Service'
+    -> GROUP BY c.customer_id, c.first_name
+    -> HAVING SUM(p.amount) > 20000
+    -> ORDER BY total_paid DESC;
++------------+------------+
+| first_name | total_paid |
++------------+------------+
+| Karthik    |   26500.00 |
+| Suresh     |   26000.00 |
+| Arjun      |   25000.00 |
+| Sneha      |   23800.00 |
++------------+------------+
+4 rows in set
+
+mysql> -- Q67. Find the total booking value of each booking (menu price x guests).
+mysql> SELECT b.booking_id, m.price_per_person, e.guest_count,
+    ->        m.price_per_person * e.guest_count AS booking_total
+    -> FROM bookings b
+    -> JOIN menus m ON b.menu_id = m.menu_id
+    -> JOIN events e ON b.event_id = e.event_id
+    -> ORDER BY b.booking_id;
++------------+------------------+-------------+---------------+
+| booking_id | price_per_person | guest_count | booking_total |
++------------+------------------+-------------+---------------+
+|          1 |           650.00 |          20 |      13000.00 |
+|          2 |           550.00 |          30 |      16500.00 |
+|          3 |           500.00 |          50 |      25000.00 |
+|          4 |           350.00 |          40 |      14000.00 |
+|          5 |           800.00 |          15 |      12000.00 |
+|          6 |           450.00 |          25 |      11250.00 |
+|          7 |           550.00 |          12 |       6600.00 |
+|          8 |           500.00 |          60 |      30000.00 |
+|          9 |           650.00 |          80 |      52000.00 |
+|         10 |           800.00 |          35 |      28000.00 |
+|         11 |           350.00 |           2 |        700.00 |
+|         12 |           350.00 |           4 |       1400.00 |
+|         13 |           500.00 |           2 |       1000.00 |
+|         14 |           300.00 |           3 |        900.00 |
+|         15 |           300.00 |           2 |        600.00 |
++------------+------------------+-------------+---------------+
+15 rows in set
+
+mysql> -- Q68. Find the platform commission (15% of each Completed booking total).
+mysql> SELECT b.booking_id,
+    ->        m.price_per_person * e.guest_count AS booking_total,
+    ->        ROUND(m.price_per_person * e.guest_count * 0.15, 2) AS commission
+    -> FROM bookings b
+    -> JOIN menus m ON b.menu_id = m.menu_id
+    -> JOIN events e ON b.event_id = e.event_id
+    -> WHERE b.booking_status = 'Completed'
+    -> ORDER BY b.booking_id;
++------------+---------------+------------+
+| booking_id | booking_total | commission |
++------------+---------------+------------+
+|          1 |      13000.00 |    1950.00 |
+|          2 |      16500.00 |    2475.00 |
+|          3 |      25000.00 |    3750.00 |
+|          4 |      14000.00 |    2100.00 |
+|          5 |      12000.00 |    1800.00 |
+|         11 |        700.00 |     105.00 |
+|         12 |       1400.00 |     210.00 |
++------------+---------------+------------+
+7 rows in set
+
+mysql> -- Q69. Find the chef payout (85% of Completed booking totals) earned by each chef.
+mysql> SELECT ch.chef_name,
+    ->        ROUND(SUM(m.price_per_person * e.guest_count * 0.85), 2) AS total_payout
+    -> FROM bookings b
+    -> JOIN chefs ch ON b.chef_id = ch.chef_id
+    -> JOIN menus m ON b.menu_id = m.menu_id
+    -> JOIN events e ON b.event_id = e.event_id
+    -> WHERE b.booking_status = 'Completed'
+    -> GROUP BY ch.chef_id, ch.chef_name
+    -> ORDER BY total_payout DESC;
++-----------------+--------------+
+| chef_name       | total_payout |
++-----------------+--------------+
+| Harpreet Singh  |     35870.00 |
+| Ramesh Naidu    |     13090.00 |
+| Lakshmi Reddy   |     11050.00 |
+| Marco Fernandes |     10200.00 |
++-----------------+--------------+
+4 rows in set
+
+mysql> -- Q70. Find the monthly revenue from successful payments.
+mysql> SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month, SUM(amount) AS revenue
+    -> FROM payments
+    -> WHERE payment_status = 'Success' AND payment_type = 'Service'
+    -> GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
+    -> ORDER BY month;
++---------+----------+
+| month   |  revenue |
++---------+----------+
+| 2026-08 | 42000.00 |
+| 2026-09 | 93325.00 |
++---------+----------+
+2 rows in set
+
+mysql> -- Q71. Find menus priced above the average menu price.
+mysql> SELECT menu_name, price_per_person
+    -> FROM menus
+    -> WHERE price_per_person > (SELECT AVG(price_per_person) FROM menus);
++---------------------+------------------+
+| menu_name           | price_per_person |
++---------------------+------------------+
+| Andhra Feast        |           650.00 |
+| Wok Non-Veg Special |           600.00 |
+| Italian Pasta Night |           800.00 |
+| Continental Grill   |          1200.00 |
+| Vegan Wellness Menu |           700.00 |
++---------------------+------------------+
+5 rows in set
+
+mysql> -- Q72. Find the chef with the most experience.
+mysql> SELECT chef_name, experience_years
+    -> FROM chefs
+    -> WHERE experience_years = (SELECT MAX(experience_years) FROM chefs);
++-----------------+------------------+
+| chef_name       | experience_years |
++-----------------+------------------+
+| Marco Fernandes |               12 |
++-----------------+------------------+
+1 row in set
+
+mysql> -- Q73. Find events that have at least one booking (IN).
+mysql> SELECT event_id, event_type, event_date
+    -> FROM events
+    -> WHERE event_id IN (SELECT event_id FROM bookings);
++----------+---------------------+------------+
+| event_id | event_type          | event_date |
++----------+---------------------+------------+
+|        1 | Birthday Party      | 2026-08-15 |
+|        2 | Wedding Anniversary | 2026-08-22 |
+|        3 | Corporate Lunch     | 2026-09-05 |
+|        4 | House Warming       | 2026-09-12 |
+|        5 | Birthday Party      | 2026-09-20 |
+|        6 | Family Gathering    | 2026-10-10 |
+|        7 | Dinner Party        | 2026-10-15 |
+|        8 | Corporate Dinner    | 2026-10-18 |
+|        9 | Engagement          | 2026-10-20 |
+|       10 | Farewell Party      | 2026-10-25 |
+|       11 | Healthy Lunch       | 2026-09-18 |
+|       12 | Home Dinner         | 2026-09-26 |
+|       13 | Healthy Lunch       | 2026-10-03 |
+|       14 | Home Dinner         | 2026-10-06 |
+|       15 | Healthy Breakfast   | 2026-10-08 |
++----------+---------------------+------------+
+15 rows in set
+
+mysql> -- Q74. Find customers who have planned at least one event (EXISTS).
+mysql> SELECT customer_id, first_name
+    -> FROM customers c
+    -> WHERE EXISTS (
+    ->     SELECT 1
+    ->     FROM events e
+    ->     WHERE e.customer_id = c.customer_id
+    -> );
++-------------+------------+
+| customer_id | first_name |
++-------------+------------+
+|           1 | Ravi       |
+|           2 | Sneha      |
+|           3 | Arjun      |
+|           4 | Priya      |
+|           5 | Karthik    |
+|           6 | Meena      |
+|           7 | Suresh     |
++-------------+------------+
+7 rows in set
+
+mysql> -- Q75. Find bookings whose event has more guests than the average guest count.
+mysql> SELECT b.booking_id, e.event_type, e.guest_count
+    -> FROM bookings b
+    -> JOIN events e ON b.event_id = e.event_id
+    -> WHERE e.guest_count > (SELECT AVG(guest_count) FROM events)
+    -> ORDER BY b.booking_id;
++------------+---------------------+-------------+
+| booking_id | event_type          | guest_count |
++------------+---------------------+-------------+
+|          2 | Wedding Anniversary |          30 |
+|          3 | Corporate Lunch     |          50 |
+|          4 | House Warming       |          40 |
+|          8 | Corporate Dinner    |          60 |
+|          9 | Engagement          |          80 |
+|         10 | Farewell Party      |          35 |
++------------+---------------------+-------------+
+6 rows in set
+
+mysql> -- Q76. Find chefs who offer a Vegan menu.
+mysql> SELECT chef_name
+    -> FROM chefs
+    -> WHERE chef_id IN (
+    ->     SELECT chef_id
+    ->     FROM menus
+    ->     WHERE diet_flag = 'Vegan'
+    -> );
++----------------+
+| chef_name      |
++----------------+
+| Tanvi Kulkarni |
++----------------+
+1 row in set
+
+mysql> -- Q77. Find chefs whose average rating is higher than the overall average rating.
+mysql> SELECT ch.chef_name, ROUND(AVG(r.rating), 2) AS avg_rating
+    -> FROM reviews r
+    -> JOIN bookings b ON r.booking_id = b.booking_id
+    -> JOIN chefs ch ON b.chef_id = ch.chef_id
+    -> GROUP BY ch.chef_id, ch.chef_name
+    -> HAVING AVG(r.rating) > (SELECT AVG(rating) FROM reviews)
+    -> ORDER BY ch.chef_id;
++----------------+------------+
+| chef_name      | avg_rating |
++----------------+------------+
+| Lakshmi Reddy  |       5.00 |
+| Ramesh Naidu   |       4.50 |
+| Harpreet Singh |       4.33 |
++----------------+------------+
+3 rows in set
+
+mysql> -- Q78. Find customers who have never planned an event (NOT IN).
+mysql> SELECT customer_id, first_name
+    -> FROM customers
+    -> WHERE customer_id NOT IN (SELECT customer_id FROM events);
++-------------+------------+
+| customer_id | first_name |
++-------------+------------+
+|           8 | Divya      |
++-------------+------------+
+1 row in set
+
+mysql> -- Q79. Find events that do not have any successful service payment (NOT EXISTS).
+mysql> SELECT e.event_id, e.event_type, e.event_date
+    -> FROM events e
+    -> WHERE NOT EXISTS (
+    ->     SELECT 1
+    ->     FROM bookings b
+    ->     JOIN payments p ON b.booking_id = p.booking_id
+    ->     WHERE b.event_id = e.event_id
+    ->       AND p.payment_status = 'Success' AND p.payment_type = 'Service'
+    -> )
+    -> ORDER BY e.event_id;
++----------+-------------------+------------+
+| event_id | event_type        | event_date |
++----------+-------------------+------------+
+|        8 | Corporate Dinner  | 2026-10-18 |
+|       14 | Home Dinner       | 2026-10-06 |
+|       15 | Healthy Breakfast | 2026-10-08 |
++----------+-------------------+------------+
+3 rows in set
+
+mysql> -- Q80. Show every chef with the number of bookings (subquery in the SELECT list).
+mysql> SELECT ch.chef_name,
+    ->        (SELECT COUNT(*) FROM bookings b WHERE b.chef_id = ch.chef_id) AS total_bookings
+    -> FROM chefs ch
+    -> ORDER BY total_bookings DESC, ch.chef_name;
++-----------------+----------------+
+| chef_name       | total_bookings |
++-----------------+----------------+
+| Harpreet Singh  |              5 |
+| Lakshmi Reddy   |              5 |
+| Marco Fernandes |              3 |
+| Ramesh Naidu    |              2 |
+| Tanvi Kulkarni  |              0 |
+| Vikram Chowdary |              0 |
++-----------------+----------------+
+6 rows in set
+
+mysql> -- Q81. Create a view that joins everything about a booking in one place (customer, chef, menu, event and money columns).
+mysql> CREATE OR REPLACE VIEW v_booking_details AS
+    -> SELECT b.booking_id,
+    ->        e.event_id,
+    ->        c.customer_id,
+    ->        c.first_name       AS customer_name,
+    ->        cl.city            AS customer_city,
+    ->        ch.chef_id,
+    ->        ch.chef_name,
+    ->        m.menu_name,
+    ->        m.diet_flag,
+    ->        e.event_type,
+    ->        e.service_type,
+    ->        e.event_date,
+    ->        e.service_time,
+    ->        e.guest_count,
+    ->        b.booking_status,
+    ->        b.ingredient_source,
+    ->        bf.booking_total,
+    ->        bf.grand_total,
+    ->        bf.balance_due
+    -> FROM bookings b
+    -> JOIN events    e  ON b.event_id    = e.event_id
+    -> JOIN customers c  ON e.customer_id = c.customer_id
+    -> JOIN locations cl ON c.location_id = cl.location_id
+    -> JOIN chefs     ch ON b.chef_id     = ch.chef_id
+    -> JOIN menus     m  ON b.menu_id     = m.menu_id
+    -> JOIN booking_financials bf ON b.booking_id = bf.booking_id;
+Query OK, 0 rows affected
+
+mysql> SELECT * FROM v_booking_details ORDER BY event_date;
++------------+----------+-------------+---------------+---------------+---------+-----------------+-----------------------------+-----------+---------------------+---------------+------------+--------------+-------------+----------------+-------------------+---------------+-------------+-------------+
+| booking_id | event_id | customer_id | customer_name | customer_city | chef_id | chef_name       | menu_name                   | diet_flag | event_type          | service_type  | event_date | service_time | guest_count | booking_status | ingredient_source | booking_total | grand_total | balance_due |
++------------+----------+-------------+---------------+---------------+---------+-----------------+-----------------------------+-----------+---------------------+---------------+------------+--------------+-------------+----------------+-------------------+---------------+-------------+-------------+
+|          1 |        1 |           1 | Ravi          | Vijayawada    |       1 | Lakshmi Reddy   | Andhra Feast                | Non-Veg   | Birthday Party      | Event         | 2026-08-15 | 18:00:00     |          20 | Completed      | Customer          |      13000.00 |    13000.00 |        0.00 |
+|          2 |        2 |           2 | Sneha         | Hyderabad     |       3 | Harpreet Singh  | Punjabi Dhaba Combo         | Non-Veg   | Wedding Anniversary | Event         | 2026-08-22 | 20:00:00     |          30 | Completed      | Customer          |      16500.00 |    16500.00 |        0.00 |
+|          3 |        3 |           3 | Arjun         | Visakhapatnam |       3 | Harpreet Singh  | North Indian Veg Deluxe     | Veg       | Corporate Lunch     | Event         | 2026-09-05 | 13:00:00     |          50 | Completed      | Chef              |      25000.00 |    31000.00 |        0.00 |
+|          4 |        4 |           4 | Priya         | Guntur        |       2 | Ramesh Naidu    | South Indian Tiffin Special | Veg       | House Warming       | Event         | 2026-09-12 | 11:00:00     |          40 | Completed      | Customer          |      14000.00 |    14000.00 |        0.00 |
+|         11 |       11 |           2 | Sneha         | Hyderabad     |       3 | Harpreet Singh  | Healthy Roti-Sabzi Meal     | Veg       | Healthy Lunch       | Personal Chef | 2026-09-18 | 13:00:00     |           2 | Completed      | Customer          |        700.00 |      700.00 |        0.00 |
+|          5 |        5 |           5 | Karthik       | Bengaluru     |       5 | Marco Fernandes | Italian Pasta Night         | Veg       | Birthday Party      | Event         | 2026-09-20 | 17:00:00     |          15 | Completed      | Customer          |      12000.00 |    12000.00 |        0.00 |
+|         12 |       12 |           4 | Priya         | Guntur        |       2 | Ramesh Naidu    | South Indian Tiffin Special | Veg       | Home Dinner         | Personal Chef | 2026-09-26 | 19:30:00     |           4 | Completed      | Chef              |       1400.00 |     2600.00 |        0.00 |
+|         13 |       13 |           5 | Karthik       | Bengaluru     |       5 | Marco Fernandes | Light and Healthy Bowl      | Veg       | Healthy Lunch       | Personal Chef | 2026-10-03 | 12:30:00     |           2 | Confirmed      | Chef              |       1000.00 |     1000.00 |      500.00 |
+|         14 |       14 |           7 | Suresh        | Vijayawada    |       1 | Lakshmi Reddy   | Homestyle Andhra Meal       | Veg       | Home Dinner         | Personal Chef | 2026-10-06 | 20:00:00     |           3 | Pending        | Customer          |        900.00 |      900.00 |      900.00 |
+|         15 |       15 |           1 | Ravi          | Vijayawada    |       1 | Lakshmi Reddy   | Homestyle Andhra Meal       | Veg       | Healthy Breakfast   | Personal Chef | 2026-10-08 | 08:30:00     |           2 | Confirmed      | Chef              |        600.00 |      600.00 |      600.00 |
+|          6 |        6 |           1 | Ravi          | Vijayawada    |       1 | Lakshmi Reddy   | Royal Veg Thali             | Veg       | Family Gathering    | Event         | 2026-10-10 | 12:30:00     |          25 | Confirmed      | Customer          |      11250.00 |    11250.00 |     5625.00 |
+|          7 |        7 |           2 | Sneha         | Hyderabad     |       3 | Harpreet Singh  | Punjabi Dhaba Combo         | Non-Veg   | Dinner Party        | Event         | 2026-10-15 | 20:30:00     |          12 | Confirmed      | Customer          |       6600.00 |     6600.00 |        0.00 |
+|          8 |        8 |           6 | Meena         | Hyderabad     |       3 | Harpreet Singh  | North Indian Veg Deluxe     | Veg       | Corporate Dinner    | Event         | 2026-10-18 | 19:00:00     |          60 | Pending        | Customer          |      30000.00 |    30000.00 |    30000.00 |
+|          9 |        9 |           7 | Suresh        | Vijayawada    |       1 | Lakshmi Reddy   | Andhra Feast                | Non-Veg   | Engagement          | Event         | 2026-10-20 | 19:00:00     |          80 | Cancelled      | Customer          |      52000.00 |    52000.00 |    26000.00 |
+|         10 |       10 |           5 | Karthik       | Bengaluru     |       5 | Marco Fernandes | Italian Pasta Night         | Veg       | Farewell Party      | Event         | 2026-10-25 | 18:30:00     |          35 | Confirmed      | Customer          |      28000.00 |    28000.00 |    14000.00 |
++------------+----------+-------------+---------------+---------------+---------+-----------------+-----------------------------+-----------+---------------------+---------------+------------+--------------+-------------+----------------+-------------------+---------------+-------------+-------------+
+15 rows in set
+
+mysql> -- Q82. Using the view: show the outstanding balance of every non-cancelled booking.
+mysql> SELECT booking_id, customer_name, booking_status,
+    ->        booking_total,
+    ->        booking_total - balance_due AS paid_amount,
+    ->        balance_due
+    -> FROM v_booking_details
+    -> WHERE booking_status <> 'Cancelled'
+    -> ORDER BY balance_due DESC, booking_id;
++------------+---------------+----------------+---------------+-------------+-------------+
+| booking_id | customer_name | booking_status | booking_total | paid_amount | balance_due |
++------------+---------------+----------------+---------------+-------------+-------------+
+|          8 | Meena         | Pending        |      30000.00 |        0.00 |    30000.00 |
+|         10 | Karthik       | Confirmed      |      28000.00 |    14000.00 |    14000.00 |
+|          6 | Ravi          | Confirmed      |      11250.00 |     5625.00 |     5625.00 |
+|         14 | Suresh        | Pending        |        900.00 |        0.00 |      900.00 |
+|         15 | Ravi          | Confirmed      |        600.00 |        0.00 |      600.00 |
+|         13 | Karthik       | Confirmed      |       1000.00 |      500.00 |      500.00 |
+|          1 | Ravi          | Completed      |      13000.00 |    13000.00 |        0.00 |
+|          2 | Sneha         | Completed      |      16500.00 |    16500.00 |        0.00 |
+|          3 | Arjun         | Completed      |      25000.00 |    25000.00 |        0.00 |
+|          4 | Priya         | Completed      |      14000.00 |    14000.00 |        0.00 |
+|          5 | Karthik       | Completed      |      12000.00 |    12000.00 |        0.00 |
+|          7 | Sneha         | Confirmed      |       6600.00 |     6600.00 |        0.00 |
+|         11 | Sneha         | Completed      |        700.00 |      700.00 |        0.00 |
+|         12 | Priya         | Completed      |       1400.00 |     1400.00 |        0.00 |
++------------+---------------+----------------+---------------+-------------+-------------+
+14 rows in set
+
+mysql> -- Q83. Create a chef scorecard view (completed bookings, average rating, total payout).
+mysql> CREATE OR REPLACE VIEW v_chef_scorecard AS
+    -> SELECT ch.chef_id,
+    ->        ch.chef_name,
+    ->        COUNT(b.booking_id) AS completed_bookings,
+    ->        car.avg_rating,
+    ->        ROUND(IFNULL(SUM(bf.chef_payout), 0), 2) AS total_payout
+    -> FROM chefs ch
+    -> LEFT JOIN bookings b            ON ch.chef_id = b.chef_id AND b.booking_status = 'Completed'
+    -> LEFT JOIN booking_financials bf ON b.booking_id = bf.booking_id
+    -> LEFT JOIN chef_avg_rating car   ON ch.chef_id = car.chef_id
+    -> GROUP BY ch.chef_id, ch.chef_name, car.avg_rating;
+Query OK, 0 rows affected
+
+mysql> SELECT * FROM v_chef_scorecard ORDER BY total_payout DESC;
++---------+-----------------+--------------------+------------+--------------+
+| chef_id | chef_name       | completed_bookings | avg_rating | total_payout |
++---------+-----------------+--------------------+------------+--------------+
+|       3 | Harpreet Singh  |                  3 |       4.33 |     41870.00 |
+|       2 | Ramesh Naidu    |                  2 |       4.50 |     14290.00 |
+|       1 | Lakshmi Reddy   |                  1 |       5.00 |     11050.00 |
+|       5 | Marco Fernandes |                  1 |       3.00 |     10200.00 |
+|       4 | Vikram Chowdary |                  0 |       NULL |         0.00 |
+|       6 | Tanvi Kulkarni  |                  0 |       NULL |         0.00 |
++---------+-----------------+--------------------+------------+--------------+
+6 rows in set
+
+mysql> -- Q84. Create a monthly revenue view (successful service payments only).
+mysql> CREATE OR REPLACE VIEW v_monthly_revenue AS
+    -> SELECT DATE_FORMAT(payment_date, '%Y-%m') AS month,
+    ->        COUNT(*)    AS payments_received,
+    ->        SUM(amount) AS revenue
+    -> FROM payments
+    -> WHERE payment_status = 'Success' AND payment_type = 'Service'
+    -> GROUP BY DATE_FORMAT(payment_date, '%Y-%m');
+Query OK, 0 rows affected
+
+mysql> SELECT * FROM v_monthly_revenue ORDER BY month;
++---------+-------------------+----------+
+| month   | payments_received |  revenue |
++---------+-------------------+----------+
+| 2026-08 |                 4 | 42000.00 |
+| 2026-09 |                10 | 93325.00 |
++---------+-------------------+----------+
+2 rows in set
+
+mysql> -- Q85. Procedure: list all bookings of one chef.
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> CALL sp_chef_bookings(3);
++------------+---------------+---------------------+---------------+------------+----------------+---------------+-------------+
+| booking_id | customer_name | event_type          | service_type  | event_date | booking_status | booking_total | balance_due |
++------------+---------------+---------------------+---------------+------------+----------------+---------------+-------------+
+|          2 | Sneha         | Wedding Anniversary | Event         | 2026-08-22 | Completed      |      16500.00 |        0.00 |
+|          3 | Arjun         | Corporate Lunch     | Event         | 2026-09-05 | Completed      |      25000.00 |        0.00 |
+|         11 | Sneha         | Healthy Lunch       | Personal Chef | 2026-09-18 | Completed      |        700.00 |        0.00 |
+|          7 | Sneha         | Dinner Party        | Event         | 2026-10-15 | Confirmed      |       6600.00 |        0.00 |
+|          8 | Meena         | Corporate Dinner    | Event         | 2026-10-18 | Pending        |      30000.00 |    30000.00 |
++------------+---------------+---------------------+---------------+------------+----------------+---------------+-------------+
+5 rows in set
+
+mysql> -- Q86. Procedure: customer statement - every booking of one customer with the money paid and due.
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> CALL sp_customer_statement(2);
++------------+----------------+-------------------------+---------------------+------------+----------------+---------------+-------------+-------------+
+| booking_id | chef_name      | menu_name               | event_type          | event_date | booking_status | booking_total | paid_amount | balance_due |
++------------+----------------+-------------------------+---------------------+------------+----------------+---------------+-------------+-------------+
+|          2 | Harpreet Singh | Punjabi Dhaba Combo     | Wedding Anniversary | 2026-08-22 | Completed      |      16500.00 |    16500.00 |        0.00 |
+|         11 | Harpreet Singh | Healthy Roti-Sabzi Meal | Healthy Lunch       | 2026-09-18 | Completed      |        700.00 |      700.00 |        0.00 |
+|          7 | Harpreet Singh | Punjabi Dhaba Combo     | Dinner Party        | 2026-10-15 | Confirmed      |       6600.00 |     6600.00 |        0.00 |
++------------+----------------+-------------------------+---------------------+------------+----------------+---------------+-------------+-------------+
+3 rows in set
+
+mysql> -- Q87. Procedure: monthly revenue of a given year, with the share of the year's revenue.
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> CALL sp_monthly_revenue(2026);
++---------+----------+-------------------+
+| month   |  revenue | share_of_year_pct |
++---------+----------+-------------------+
+| 2026-08 | 42000.00 |             31.04 |
+| 2026-09 | 93325.00 |             68.96 |
++---------+----------+-------------------+
+2 rows in set
+
+mysql> -- Q88. Procedure: find verified chefs of a city who are free on a date (an 'Available' slot and no active booking on that date).
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> CALL sp_available_chefs('Bengaluru', '2026-10-20');
++---------+-----------------+------------------+------------+----------+
+| chef_id | chef_name       | experience_years | start_time | end_time |
++---------+-----------------+------------------+------------+----------+
+|       5 | Marco Fernandes |               12 | 12:00:00   | 23:00:00 |
++---------+-----------------+------------------+------------+----------+
+1 row in set
+
+mysql> -- Q89. Procedure: create a booking for an event. OUT parameter returns the new booking_id. (The rules, such as "only a Verified chef", are checked by the triggers in Q92 - Q97.)
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> INSERT INTO events (customer_id, event_date, service_time, event_type, service_type, guest_count, requirements)
+    -> VALUES (3, '2026-11-05', '19:00:00', 'Birthday Party', 'Event', 10, 'Test event');
+Query OK, 1 row affected
+
+mysql> SET @new_event = LAST_INSERT_ID();
+Query OK, 0 rows affected
+
+mysql> CALL sp_create_booking(@new_event, 4, 6, 'Chef', 800.00, @new_booking);
+Query OK, 1 row affected
+
+mysql> SELECT @new_booking AS new_booking_id;
++----------------+
+| new_booking_id |
++----------------+
+|             16 |
++----------------+
+1 row in set
+
+mysql> SELECT * FROM v_booking_details WHERE booking_id = @new_booking;
++------------+----------+-------------+---------------+---------------+---------+-----------------+----------------------+-----------+----------------+--------------+------------+--------------+-------------+----------------+-------------------+---------------+-------------+-------------+
+| booking_id | event_id | customer_id | customer_name | customer_city | chef_id | chef_name       | menu_name            | diet_flag | event_type     | service_type | event_date | service_time | guest_count | booking_status | ingredient_source | booking_total | grand_total | balance_due |
++------------+----------+-------------+---------------+---------------+---------+-----------------+----------------------+-----------+----------------+--------------+------------+--------------+-------------+----------------+-------------------+---------------+-------------+-------------+
+|         16 |       16 |           3 | Arjun         | Visakhapatnam |       4 | Vikram Chowdary | Indo-Chinese Delight | Veg       | Birthday Party | Event        | 2026-11-05 | 19:00:00     |          10 | Pending        | Chef              |       4000.00 |     4800.00 |     4000.00 |
++------------+----------+-------------+---------------+---------------+---------+-----------------+----------------------+-----------+----------------+--------------+------------+--------------+-------------+----------------+-------------------+---------------+-------------+-------------+
+1 row in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> -- Q90. Procedure: record a payment and return the balance still due. (The payment rules are checked by the trigger in Q96.)
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> CALL sp_record_payment(6, 'UPI', 'Service', 5625.00, @balance_left);
+Query OK, 1 row affected
+
+mysql> SELECT @balance_left AS balance_due_after_payment;
++---------------------------+
+| balance_due_after_payment |
++---------------------------+
+|                      0.00 |
++---------------------------+
+1 row in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> -- Q91. Procedure: cancel a booking and return the amount that was paid for it. (Simple rule for this project: the paid service amount is the refund amount. The trigger in Q93 stops Completed or Cancelled bookings from being changed.)
+-- (the CREATE PROCEDURE statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> CALL sp_cancel_booking(6, @refund);
+Query OK, 1 row affected
+
+mysql> SELECT @refund AS refund_amount;
++---------------+
+| refund_amount |
++---------------+
+|       5625.00 |
++---------------+
+1 row in set
+
+mysql> SELECT booking_id, booking_status FROM bookings WHERE booking_id = 6;
++------------+----------------+
+| booking_id | booking_status |
++------------+----------------+
+|          6 | Cancelled      |
++------------+----------------+
+1 row in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> -- Q92. Trigger (AFTER UPDATE): keep an audit log of every booking status change. First create the small log table the trigger writes into.
+-- (the CREATE TRIGGER statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> UPDATE bookings SET booking_status = 'Confirmed' WHERE booking_id = 8;
+Query OK, 1 row affected
+
+mysql> SELECT * FROM booking_status_log;
++--------+------------+------------+------------+---------------------+
+| log_id | booking_id | old_status | new_status | changed_at          |
++--------+------------+------------+------------+---------------------+
+|      1 |          8 | Pending    | Confirmed  | 2026-10-06 08:54:28 |
++--------+------------+------------+------------+---------------------+
+1 row in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> -- Q93. Trigger (BEFORE UPDATE): protect the booking life cycle. Completed and Cancelled bookings are final, and a booking must be Confirmed before it can be Completed.
+-- (the CREATE TRIGGER statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> UPDATE bookings SET booking_status = 'Pending' WHERE booking_id = 1;
+ERROR 1644 (45000): Completed or Cancelled bookings cannot change status
+
+mysql> UPDATE bookings SET booking_status = 'Completed' WHERE booking_id = 8;
+ERROR 1644 (45000): A booking must be Confirmed before it is Completed
+
+mysql> -- Q94. Trigger (BEFORE INSERT): only a Verified chef can receive a booking.
+-- (the CREATE TRIGGER statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> INSERT INTO bookings (event_id, chef_id, menu_id, booking_status, ingredient_source, ingredient_cost) VALUES (1, 6, 10, 'Pending', 'Customer', 0);
+ERROR 1644 (45000): Only a Verified chef can be booked
+
+mysql> -- Q95. Trigger (AFTER INSERT): when a booking is created, mark the chef's 'Available' slot on the event date as 'Booked'.
+-- (the CREATE TRIGGER statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> INSERT INTO events (customer_id, event_date, service_time, event_type, service_type, guest_count, requirements)
+    -> VALUES (4, '2026-10-12', '12:00:00', 'Family Gathering', 'Event', 10, 'Test event');
+Query OK, 1 row affected
+
+mysql> SET @ev = LAST_INSERT_ID();
+Query OK, 0 rows affected
+
+mysql> CALL sp_create_booking(@ev, 2, 3, 'Customer', 0, @bk);
+Query OK, 1 row affected
+
+mysql> SELECT chef_id, availability_dt, status FROM chef_availability WHERE chef_id = 2;
++---------+-----------------+--------+
+| chef_id | availability_dt | status |
++---------+-----------------+--------+
+|       2 | 2026-10-12      | Booked |
++---------+-----------------+--------+
+1 row in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> -- Q96. Trigger (BEFORE INSERT): check every new payment. The amount must be positive, a cancelled booking takes no payment, and a successful Service payment cannot be more than the balance due.
+-- (the CREATE TRIGGER statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> INSERT INTO payments (booking_id, payment_method, payment_status, payment_type, amount, payment_date) VALUES (1, 'UPI', 'Success', 'Service', 500, NOW());
+ERROR 1644 (45000): Payment is more than the balance due
+
+mysql> INSERT INTO payments (booking_id, payment_method, payment_status, payment_type, amount, payment_date) VALUES (6, 'UPI', 'Success', 'Service', 0, NOW());
+ERROR 1644 (45000): Payment amount must be greater than zero
+
+mysql> -- Q97. Trigger (BEFORE INSERT): a review is allowed only for a Completed booking.
+-- (the CREATE TRIGGER statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> INSERT INTO reviews (booking_id, rating) VALUES (6, 5);
+ERROR 1644 (45000): Only a Completed booking can be reviewed
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> UPDATE bookings SET booking_status = 'Completed' WHERE booking_id = 7;
+Query OK, 1 row affected
+
+mysql> INSERT INTO reviews (booking_id, rating) VALUES (7, 5);
+Query OK, 1 row affected
+
+mysql> SELECT * FROM reviews WHERE booking_id = 7;
++------------+--------+
+| booking_id | rating |
++------------+--------+
+|          7 |      5 |
++------------+--------+
+1 row in set
+
+mysql> SELECT * FROM booking_status_log WHERE booking_id = 7;
++--------+------------+------------+------------+---------------------+
+| log_id | booking_id | old_status | new_status | changed_at          |
++--------+------------+------------+------------+---------------------+
+|      2 |          7 | Confirmed  | Completed  | 2026-10-06 08:54:28 |
++--------+------------+------------+------------+---------------------+
+1 row in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> -- Q98. CASE: segment customers by total successful spend (Premium / Regular / Basic).
+mysql> SELECT c.first_name,
+    ->        IFNULL(SUM(p.amount), 0) AS total_spend,
+    ->        CASE
+    ->            WHEN IFNULL(SUM(p.amount), 0) >= 30000 THEN 'Premium'
+    ->            WHEN IFNULL(SUM(p.amount), 0) >= 15000 THEN 'Regular'
+    ->            ELSE 'Basic'
+    ->        END AS segment
+    -> FROM customers c
+    -> LEFT JOIN events e   ON c.customer_id = e.customer_id
+    -> LEFT JOIN bookings b ON e.event_id = b.event_id
+    -> LEFT JOIN payments p ON b.booking_id = p.booking_id
+    ->                     AND p.payment_status = 'Success' AND p.payment_type = 'Service'
+    -> GROUP BY c.customer_id, c.first_name
+    -> ORDER BY total_spend DESC, c.first_name;
++------------+-------------+---------+
+| first_name | total_spend | segment |
++------------+-------------+---------+
+| Karthik    |    26500.00 | Regular |
+| Suresh     |    26000.00 | Regular |
+| Arjun      |    25000.00 | Regular |
+| Sneha      |    23800.00 | Regular |
+| Ravi       |    18625.00 | Regular |
+| Priya      |    15400.00 | Regular |
+| Divya      |        0.00 | Basic   |
+| Meena      |        0.00 | Basic   |
++------------+-------------+---------+
+8 rows in set
+
+mysql> -- Q99. Stored FUNCTION: return the booking total (menu price x guests) of a booking. A function returns one value, so it can be used inside SELECT and WHERE.
+-- (the CREATE FUNCTION statement is in Hard_queries.txt; Query OK, 0 rows affected)
+mysql> SELECT booking_id, booking_status, fn_booking_total(booking_id) AS booking_total
+    -> FROM bookings
+    -> WHERE fn_booking_total(booking_id) > 10000
+    -> ORDER BY booking_total DESC;
++------------+----------------+---------------+
+| booking_id | booking_status | booking_total |
++------------+----------------+---------------+
+|          9 | Cancelled      |      52000.00 |
+|          8 | Pending        |      30000.00 |
+|         10 | Confirmed      |      28000.00 |
+|          3 | Completed      |      25000.00 |
+|          2 | Completed      |      16500.00 |
+|          4 | Completed      |      14000.00 |
+|          1 | Completed      |      13000.00 |
+|          5 | Completed      |      12000.00 |
+|          6 | Confirmed      |      11250.00 |
++------------+----------------+---------------+
+9 rows in set
+
+mysql> -- Q100. TRANSACTION with SAVEPOINT: two payments, then undo only the second one. (uses sp_record_payment from Q90 and the payment trigger from Q96)
+mysql> START TRANSACTION;
+Query OK, 0 rows affected
+
+mysql> CALL sp_record_payment(6, 'UPI', 'Service', 5625.00, @left_6);
+Query OK, 1 row affected
+
+mysql> SAVEPOINT after_first_payment;
+Query OK, 0 rows affected
+
+mysql> CALL sp_record_payment(8, 'Card', 'Service', 10000.00, @left_8);
+Query OK, 1 row affected
+
+mysql> SELECT booking_id, balance_due FROM v_booking_details WHERE booking_id IN (6, 8);
++------------+-------------+
+| booking_id | balance_due |
++------------+-------------+
+|          6 |        0.00 |
+|          8 |    20000.00 |
++------------+-------------+
+2 rows in set
+
+mysql> ROLLBACK TO SAVEPOINT after_first_payment;
+Query OK, 0 rows affected
+
+mysql> SELECT booking_id, balance_due FROM v_booking_details WHERE booking_id IN (6, 8);
++------------+-------------+
+| booking_id | balance_due |
++------------+-------------+
+|          6 |        0.00 |
+|          8 |    30000.00 |
++------------+-------------+
+2 rows in set
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected
+
+mysql> SELECT booking_id, balance_due FROM v_booking_details WHERE booking_id IN (6, 8);
++------------+-------------+
+| booking_id | balance_due |
++------------+-------------+
+|          6 |     5625.00 |
+|          8 |    30000.00 |
++------------+-------------+
+2 rows in set
+
+mysql> SHOW FULL TABLES WHERE Table_type = 'VIEW';
++--------------------------+------------+
+| Tables_in_chefconnect_db | Table_type |
++--------------------------+------------+
+| booking_financials       | VIEW       |
+| chef_avg_rating          | VIEW       |
+| v_booking_details        | VIEW       |
+| v_chef_scorecard         | VIEW       |
+| v_monthly_revenue        | VIEW       |
++--------------------------+------------+
+5 rows in set
+
+mysql> SHOW PROCEDURE STATUS WHERE Db = 'chefconnect_db';
+(lists sp_available_chefs, sp_cancel_booking, sp_chef_bookings, sp_create_booking, sp_customer_statement, sp_monthly_revenue, sp_record_payment: 7 rows)
+
+mysql> SHOW FUNCTION STATUS WHERE Db = 'chefconnect_db';
+(lists fn_booking_total: 1 row)
+
+mysql> SHOW TRIGGERS;
+(lists trg_booking_status_log, trg_booking_status_flow, trg_booking_verified_chef, trg_booking_block_slot, trg_payment_check, trg_review_completed_only: 6 rows)
